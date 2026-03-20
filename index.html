@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Fonty — Font Manager</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=DM+Mono:ital,wght@0,300;0,400;0,500;1,300;1,400&family=Syne:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="app.css" />
+</head>
+<body>
+
+  <!-- ── Top Bar ──────────────────────────────────────────────────── -->
+  <header class="topbar">
+    <div class="topbar-left">
+      <span class="logo">Fonty</span>
+      <span class="logo-sub">Font Manager</span>
+    </div>
+    <div class="topbar-right">
+      <button class="btn btn-ghost" id="btn-clear-all" title="Remove all fonts">Clear All</button>
+      <button class="btn btn-ghost" id="btn-export-all" title="Batch export all fonts">Export All</button>
+      <div class="format-select-wrap">
+        <select class="format-select" id="global-format">
+          <option value="ttf">TTF</option>
+          <option value="otf">OTF</option>
+          <option value="woff" selected>WOFF</option>
+          <option value="woff2">WOFF2</option>
+          <option value="fnt">FNT (bitmap)</option>
+        </select>
+      </div>
+    </div>
+  </header>
+
+  <!-- ── Drop Zone ────────────────────────────────────────────────── -->
+  <div class="drop-zone" id="drop-zone">
+    <div class="drop-inner" id="drop-inner">
+      <div class="drop-icon">⊕</div>
+      <p class="drop-title">Drop fonts here</p>
+      <p class="drop-sub">.ttf &nbsp;·&nbsp; .otf &nbsp;·&nbsp; .woff &nbsp;·&nbsp; .woff2 &nbsp;·&nbsp; .fnt</p>
+      <label class="btn btn-primary" for="file-input">Browse files</label>
+      <input type="file" id="file-input" multiple accept=".ttf,.otf,.woff,.woff2,.fnt" hidden />
+    </div>
+  </div>
+
+  <!-- ── Main Layout ──────────────────────────────────────────────── -->
+  <main class="main" id="main" hidden>
+
+    <!-- Font List (left sidebar) -->
+    <aside class="sidebar" id="sidebar">
+      <div class="sidebar-header">
+        <span class="sidebar-title">Fonts <span class="badge" id="font-count">0</span></span>
+        <label class="btn btn-sm btn-ghost" for="file-input-sidebar">+ Add</label>
+        <input type="file" id="file-input-sidebar" multiple accept=".ttf,.otf,.woff,.woff2,.fnt" hidden />
+      </div>
+      <ul class="font-list" id="font-list"></ul>
+    </aside>
+
+    <!-- Detail Panel (center + right) -->
+    <section class="detail" id="detail">
+      <!-- Preview pane -->
+      <div class="preview-pane" id="preview-pane">
+        <div class="preview-controls">
+          <input class="preview-text-input" id="preview-text" type="text"
+                 value="The quick brown fox" placeholder="Type to preview…" />
+          <input class="size-slider" id="size-slider" type="range" min="12" max="200" value="64" />
+          <span class="size-label" id="size-label">64px</span>
+        </div>
+        <div class="preview-display" id="preview-display">
+          <span class="preview-sample" id="preview-sample">The quick brown fox</span>
+        </div>
+        <div class="preview-waterfall" id="preview-waterfall"></div>
+      </div>
+
+      <!-- Meta + Convert pane -->
+      <div class="info-pane" id="info-pane">
+
+        <!-- Tabs -->
+        <div class="tabs">
+          <button class="tab active" data-tab="meta">Metadata</button>
+          <button class="tab" data-tab="convert">Convert</button>
+          <button class="tab" data-tab="glyphs">Glyphs</button>
+        </div>
+
+        <!-- ─ Metadata Tab ─ -->
+        <div class="tab-content active" id="tab-meta">
+          <div class="meta-grid" id="meta-grid">
+            <!-- Filled by JS -->
+          </div>
+          <div class="meta-actions">
+            <button class="btn btn-primary" id="btn-save-meta">Save Metadata</button>
+            <span class="save-status" id="save-status"></span>
+          </div>
+        </div>
+
+        <!-- ─ Convert Tab ─ -->
+        <div class="tab-content" id="tab-convert">
+          <div class="convert-section">
+            <p class="section-label">Single File Export</p>
+            <div class="convert-row">
+              <select class="format-select" id="single-format">
+                <option value="ttf">TTF — TrueType</option>
+                <option value="otf">OTF — OpenType</option>
+                <option value="woff">WOFF — Web Open Font</option>
+                <option value="woff2">WOFF2 — Compressed Web Font</option>
+                <option value="fnt">FNT — AngelCode Bitmap</option>
+              </select>
+              <button class="btn btn-primary" id="btn-convert-single">Export</button>
+            </div>
+          </div>
+
+          <div class="convert-section">
+            <p class="section-label">FNT Bitmap Options</p>
+            <div class="fnt-options">
+              <label>Size
+                <input type="number" class="input-sm" id="fnt-size" value="32" min="8" max="256" />
+              </label>
+              <label>Padding
+                <input type="number" class="input-sm" id="fnt-padding" value="2" min="0" max="16" />
+              </label>
+              <label>Charset
+                <input type="text" class="input-charset" id="fnt-charset"
+                  value=' !"#$%&amp;&apos;()*+,-./0123456789:;&lt;=&gt;?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\]^_`abcdefghijklmnopqrstuvwxyz{|}~' />
+              </label>
+            </div>
+          </div>
+
+          <div class="convert-section" id="convert-size-info">
+            <p class="section-label">File Info</p>
+            <div class="file-info" id="file-info"></div>
+          </div>
+        </div>
+
+        <!-- ─ Glyphs Tab ─ -->
+        <div class="tab-content" id="tab-glyphs">
+          <div class="glyph-search-row">
+            <input class="glyph-search" id="glyph-search" type="text" placeholder="Search glyphs…" />
+            <span class="glyph-count-label" id="glyph-count-label"></span>
+          </div>
+          <div class="glyph-grid" id="glyph-grid"></div>
+        </div>
+
+      </div><!-- /info-pane -->
+    </section>
+
+  </main>
+
+  <!-- ── Batch Export Modal ────────────────────────────────────────── -->
+  <div class="modal-overlay" id="modal-overlay" hidden>
+    <div class="modal">
+      <div class="modal-header">
+        <h2 class="modal-title">Batch Export</h2>
+        <button class="modal-close" id="modal-close">✕</button>
+      </div>
+      <div class="modal-body">
+        <p class="modal-desc">Export all loaded fonts to the selected format.</p>
+        <div class="modal-row">
+          <label>Format
+            <select class="format-select" id="batch-format">
+              <option value="ttf">TTF</option>
+              <option value="otf">OTF</option>
+              <option value="woff">WOFF</option>
+              <option value="woff2">WOFF2</option>
+              <option value="fnt">FNT (bitmap)</option>
+            </select>
+          </label>
+        </div>
+        <div class="batch-progress" id="batch-progress" hidden>
+          <div class="progress-bar">
+            <div class="progress-fill" id="progress-fill"></div>
+          </div>
+          <p class="progress-label" id="progress-label"></p>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-ghost" id="modal-cancel">Cancel</button>
+        <button class="btn btn-primary" id="modal-start">Start Export</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Toast ─────────────────────────────────────────────────────── -->
+  <div class="toast-stack" id="toast-stack"></div>
+
+  <!-- ── Scripts ───────────────────────────────────────────────────── -->
+  <script src="https://cdn.jsdelivr.net/npm/opentype.js@1.3.4/dist/opentype.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/pako@2.1.0/dist/pako.min.js"></script>
+  <script src="lib/fonty.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
