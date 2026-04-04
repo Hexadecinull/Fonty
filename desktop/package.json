@@ -1,6 +1,6 @@
 {
   "name": "fonty",
-  "version": "2.0.0",
+  "version": "2.1.0",
   "description": "Font manager, inspector and converter with best-in-class FNT/AngelCode bitmap font support",
   "main": "main.js",
   "author": "Fonty Contributors",
@@ -19,10 +19,50 @@
   "build": {
     "appId": "io.fonty.app",
     "productName": "Fonty",
-    "directories": { "output": "dist" },
-    "files": ["**/*", "!dist/**", "!node_modules/.cache/**"],
-    "win":   { "target": ["nsis", "portable"] },
-    "linux": { "target": ["AppImage", "deb"], "category": "Utility" },
-    "mac":   { "target": ["dmg"] }
+    "copyright": "Copyright (c) 2024 Fonty Contributors",
+    "directories": {
+      "output": "dist",
+      "buildResources": "build"
+    },
+    "files": [
+      "index.html",
+      "app.js",
+      "app.css",
+      "lib/fonty.js",
+      "main.js",
+      "preload.js"
+    ],
+    "win": {
+      "target": [
+        { "target": "nsis",     "arch": ["x64", "ia32"] },
+        { "target": "portable", "arch": ["x64"] }
+      ],
+      "artifactName": "${productName}-Setup-${version}-${arch}.${ext}"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true
+    },
+    "linux": {
+      "target": ["AppImage", "deb"],
+      "category": "Utility",
+      "artifactName": "${productName}-${version}-${arch}.${ext}"
+    },
+    "deb": {
+      "packageCategory": "utils",
+      "depends": ["libnotify4", "libxtst6", "libnss3"]
+    },
+    "mac": {
+      "target": [
+        { "target": "dmg", "arch": ["x64", "arm64"] }
+      ],
+      "category": "public.app-category.utilities",
+      "artifactName": "${productName}-${version}-${arch}.${ext}"
+    },
+    "dmg": {
+      "window": { "width": 540, "height": 380 }
+    }
   }
 }

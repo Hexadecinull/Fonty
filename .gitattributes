@@ -1,0 +1,92 @@
+# =============================================================================
+# Fonty .gitattributes
+# =============================================================================
+# Ensures consistent line endings across platforms and tells Git which
+# files are binary so it doesn't try to diff or merge them.
+
+# Default: auto-detect text files and normalize to LF on commit
+* text=auto eol=lf
+
+# Windows batch files must stay CRLF
+*.bat  text eol=crlf
+*.cmd  text eol=crlf
+*.ps1  text eol=crlf
+
+# =============================================================================
+# Explicit text files (force LF)
+# =============================================================================
+
+*.js    text eol=lf
+*.mjs   text eol=lf
+*.cjs   text eol=lf
+*.ts    text eol=lf
+*.jsx   text eol=lf
+*.tsx   text eol=lf
+
+*.html  text eol=lf
+*.htm   text eol=lf
+*.css   text eol=lf
+*.scss  text eol=lf
+*.sass  text eol=lf
+
+*.json  text eol=lf
+*.yml   text eol=lf
+*.yaml  text eol=lf
+*.toml  text eol=lf
+
+*.md    text eol=lf
+*.txt   text eol=lf
+*.sh    text eol=lf
+
+# =============================================================================
+# Binary files (no line ending conversion, no text diffs)
+# =============================================================================
+
+# Fonts
+*.ttf    binary
+*.otf    binary
+*.woff   binary
+*.woff2  binary
+*.eot    binary
+
+# FNT binary format (AngelCode BMFont)
+# Note: text/XML .fnt variants are still text, but we mark all .fnt binary
+# here since Git can't reliably tell the difference at the extension level.
+# If you commit example .fnt files, you may want to override for known-text ones.
+*.fnt    binary
+
+# Images
+*.png    binary
+*.jpg    binary
+*.jpeg   binary
+*.gif    binary
+*.bmp    binary
+*.tiff   binary
+*.tif    binary
+*.ico    binary
+*.icns   binary
+*.webp   binary
+*.avif   binary
+*.svg    text eol=lf
+
+# Archives and installers
+*.zip    binary
+*.tar    binary
+*.gz     binary
+*.bz2    binary
+*.xz     binary
+*.7z     binary
+*.rar    binary
+*.dmg    binary
+*.exe    binary
+*.msi    binary
+*.deb    binary
+*.rpm    binary
+*.AppImage binary
+
+# Native Node addons
+*.node   binary
+
+# macOS signing
+*.p12    binary
+*.cer    binary

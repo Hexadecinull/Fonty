@@ -125,6 +125,10 @@ if (IS_ELECTRON) {
   if (PLATFORM !== 'darwin') {
     el.titlebar.classList.add('visible');
     document.body.classList.add('has-titlebar');
+  } else {
+    // macOS hiddenInset puts traffic lights (close/min/max) in the top-left
+    // of the window content area. Push the brand area right so they don't overlap.
+    document.body.classList.add('platform-mac');
   }
   el.btnOpenNative.hidden = false;
   el.browseLabel.removeAttribute('for');
@@ -324,7 +328,11 @@ function renderPreview(font) {
 
   el.previewSample.style.fontFamily = family;
   el.previewSample.style.fontSize   = size + 'px';
-  el.previewSample.style.fontVariationSettings = varSettings || '';
+  if (varSettings) {
+    el.previewSample.style.fontVariationSettings = varSettings;
+  } else {
+    el.previewSample.style.removeProperty('font-variation-settings');
+  }
   el.previewSample.textContent = text;
 
   const SIZES = [10, 14, 18, 24, 32, 44];
@@ -334,7 +342,7 @@ function renderPreview(font) {
     span.className = 'waterfall-swatch';
     span.style.fontFamily = family;
     span.style.fontSize   = s + 'px';
-    span.style.fontVariationSettings = varSettings || '';
+    if (varSettings) span.style.fontVariationSettings = varSettings;
     span.textContent = (text.split(' ')[0] || 'Abc');
     el.previewWaterfall.appendChild(span);
   });
@@ -521,6 +529,21 @@ el.btnSaveMeta.addEventListener('click', () => {
 function renderConvertTab(font) {
   const size = font._buffer?.byteLength ?? 0;
   const meta = font.getMetadata();
+
+  // Reset stale FNT stats from a previous font
+  el.fntStats.style.display = 'none';
+  el.fntStats.innerHTML = '';
+
+  // For bitmap fonts, lock the export format to FNT - you cannot upscale a bitmap
+  if (font.isBitmap) {
+    el.singleFormat.value = 'fnt';
+    // Disable all non-FNT options
+    Array.from(el.singleFormat.options).forEach(opt => {
+      opt.disabled = opt.value !== 'fnt';
+    });
+  } else {
+    Array.from(el.singleFormat.options).forEach(opt => { opt.disabled = false; });
+  }
 
   const rows = font.isBitmap ? [
     ['Format',       font.format.toUpperCase()],
@@ -736,7 +759,13 @@ function renderGlyphTab(font) {
 
   if (font.isBitmap) {
     font._fntData?.chars?.forEach((_, id) => {
-      _glyphData.push({ char: String.fromCodePoint(id), code: id });
+      // Guard: id must be a valid Unicode scalar value
+      if (typeof id !== 'number' || id < 32 || id > 0x10FFFF) return;
+      // Skip surrogate pairs (0xD800-0xDFFF) which are invalid in fromCodePoint
+      if (id >= 0xD800 && id <= 0xDFFF) return;
+      try {
+        _glyphData.push({ char: String.fromCodePoint(id), code: id });
+      } catch (_) {}
     });
   } else if (font._otFont) {
     const seen = new Set();
@@ -817,17 +846,30 @@ el.glyphSearch.addEventListener('input', () => {
 // ===========================================================================
 
 function renderCSSTab(font) {
+  // FNT is a bitmap sprite sheet, not a CSS-loadable font format
+  if (font.isBitmap) {
+    const msg = 'FNT (AngelCode bitmap) fonts cannot be loaded via CSS.\nThey are sprite sheets used by game engines and custom renderers.\n\nConvert to TTF, OTF, WOFF, or WOFF2 to get a CSS-loadable font.';
+    el.snippetFontface.value = msg;
+    el.snippetUsage.value    = '';
+    el.snippetDataURI.value  = '';
+    el.varSnippetBlock.hidden = true;
+    el.copyFontface.disabled = true;
+    el.copyUsage.disabled    = true;
+    el.copyDataURI.disabled  = true;
+    return;
+  }
+
+  el.copyFontface.disabled = false;
+  el.copyUsage.disabled    = false;
+  el.copyDataURI.disabled  = false;
+
   const meta    = font.getMetadata();
   const family  = meta.family || Fonty.utils.basename(font.filename) || 'MyFont';
-
-  // @font-face
-  const mime    = Fonty.MIME_TYPES[font.format] || 'font/ttf';
-  const dataURI = font.getPreviewDataURL();
   const varStr  = font.isVariable ? '\n  font-weight: 100 900;' : '';
+  const baseName = Fonty.utils.basename(font.filename);
 
-  el.snippetFontface.value = `@font-face {\n  font-family: '${family}';${varStr}\n  src: url('./fonts/${Fonty.utils.basename(font.filename)}.${font.format}') format('${fmtLabel(font.format)}'),\n       url('./fonts/${Fonty.utils.basename(font.filename)}.woff2') format('woff2');\n  font-display: swap;\n}`;
+  el.snippetFontface.value = `@font-face {\n  font-family: '${family}';${varStr}\n  src: url('./fonts/${baseName}.woff2') format('woff2'),\n       url('./fonts/${baseName}.${font.format}') format('${fmtLabel(font.format)}');\n  font-display: swap;\n}`;
 
-  // Usage
   const usageLines = [`/* Apply the font */`, `.my-element {`, `  font-family: '${family}', sans-serif;`];
   if (font.isVariable) {
     const axes = font.getVariationAxes();
@@ -838,16 +880,12 @@ function renderCSSTab(font) {
   usageLines.push(`}`);
   el.snippetUsage.value = usageLines.join('\n');
 
-  // Data URI
-  el.snippetDataURI.value = dataURI;
+  el.snippetDataURI.value = font.getPreviewDataURL();
 
-  // Variable axes CSS
   if (font.isVariable) {
     el.varSnippetBlock.hidden = false;
-    const axes = font.getVariationAxes() || [];
-    const lines = axes.map(a =>
-      `/* ${a.name} (${a.tag}): ${a.min} to ${a.max}, default ${a.default} */`
-    );
+    const axes  = font.getVariationAxes() || [];
+    const lines = axes.map(a => `/* ${a.name} (${a.tag}): ${a.min} to ${a.max}, default ${a.default} */`);
     lines.push('', '.my-element {');
     lines.push(`  font-variation-settings: ${axes.map(a => `'${a.tag}' ${a.default}`).join(', ')};`);
     lines.push('}');
@@ -971,7 +1009,6 @@ function hideDropZone() {
 function showFontDetail() {
   el.dropZone.hidden    = true;
   el.fontDetail.hidden  = false;
-  el.fontDetail.style.display = 'flex';
   el.emptyState.hidden  = true;
 }
 

@@ -44,6 +44,13 @@
    Reset
    =========================================================================== */
 
+/*
+ * Critical: author CSS display:flex/grid rules override the browser's built-in
+ * [hidden] { display:none } rule (UA styles lose to author styles).
+ * This one declaration fixes every hidden-vs-display conflict in one shot.
+ */
+[hidden] { display: none !important; }
+
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
 html, body {
@@ -65,6 +72,14 @@ button, input, select, textarea {
 
 a { color: var(--accent); text-decoration: none; }
 a:hover { color: var(--accent-hover); }
+
+/* Font detail panel - layout managed here, not inline HTML */
+#font-detail {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
 
 /* ===========================================================================
    App shell
@@ -89,6 +104,12 @@ body.has-titlebar .app-shell {
     "topbar   topbar"
     "sidebar  main"
     "status   status";
+}
+
+/* macOS hiddenInset: traffic lights (78px wide) sit inside the window content.
+   Offset the brand area so the logo doesn't render underneath them. */
+body.platform-mac .topbar-brand {
+  padding-left: 80px;
 }
 
 /* ===========================================================================

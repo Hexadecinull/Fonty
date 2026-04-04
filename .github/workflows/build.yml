@@ -1,0 +1,82 @@
+name: Build
+
+# Runs on every push to main and on all pull requests.
+# Builds the Electron app for all three platforms and uploads the artifacts
+# so you can download them directly from the Actions tab for testing.
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+    branches: [main, master]
+
+jobs:
+  build:
+    name: Build (${{ matrix.os }})
+    strategy:
+      fail-fast: false      # let all three platforms finish even if one fails
+      matrix:
+        include:
+          - os: windows-latest
+            platform_flag: --win
+            artifact_name: fonty-windows
+            artifact_path: desktop/dist/*.exe
+
+          - os: ubuntu-latest
+            platform_flag: --linux
+            artifact_name: fonty-linux
+            artifact_path: |
+              desktop/dist/*.AppImage
+              desktop/dist/*.deb
+
+          - os: macos-latest
+            platform_flag: --mac
+            artifact_name: fonty-macos
+            artifact_path: desktop/dist/*.dmg
+
+    runs-on: ${{ matrix.os }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      # Ubuntu needs these system libs for Electron and AppImage support
+      - name: Install Linux system dependencies
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update -y
+          sudo apt-get install -y \
+            libgtk-3-dev \
+            libnotify-dev \
+            libnss3 \
+            libxss1 \
+            libxtst6 \
+            xvfb \
+            libfuse2
+
+      - name: Install Node dependencies
+        working-directory: desktop
+        run: npm install
+
+      - name: Build Electron app
+        working-directory: desktop
+        run: npm run build ${{ matrix.platform_flag }}
+        env:
+          # Needed for electron-builder to work in CI (disables interactive prompts)
+          CI: true
+          # Set this secret in your repo if you want electron-builder to
+          # auto-publish to GitHub Releases from this workflow.
+          # GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.artifact_name }}
+          path: ${{ matrix.artifact_path }}
+          if-no-files-found: error
+          retention-days: 14

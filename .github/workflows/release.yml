@@ -1,0 +1,121 @@
+name: Release
+
+# Triggered when you push a version tag, e.g.:
+#   git tag v2.1.0
+#   git push origin v2.1.0
+#
+# Builds all three platforms in parallel, then creates a GitHub Release
+# with all artifacts attached. Tags containing a hyphen (e.g. v2.1.0-beta.1)
+# are automatically marked as pre-releases.
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write   # required to create GitHub Releases
+
+jobs:
+  build-and-release:
+    name: Release (${{ matrix.os }})
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: windows-latest
+            platform_flag: --win
+            artifact_glob: "desktop/dist/*.exe"
+
+          - os: ubuntu-latest
+            platform_flag: --linux
+            artifact_glob: "desktop/dist/*.AppImage desktop/dist/*.deb"
+
+          - os: macos-latest
+            platform_flag: --mac
+            artifact_glob: "desktop/dist/*.dmg"
+
+    runs-on: ${{ matrix.os }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install Linux system dependencies
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update -y
+          sudo apt-get install -y \
+            libgtk-3-dev \
+            libnotify-dev \
+            libnss3 \
+            libxss1 \
+            libxtst6 \
+            xvfb \
+            libfuse2
+
+      - name: Install Node dependencies
+        working-directory: desktop
+        run: npm install
+
+      - name: Build Electron app
+        working-directory: desktop
+        run: npm run build ${{ matrix.platform_flag }}
+        env:
+          CI: true
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      # -----------------------------------------------------------------------
+      # macOS code signing (optional but strongly recommended for distribution)
+      # To enable: add these secrets in your repo settings:
+      #   APPLE_CERTIFICATE        Base64-encoded .p12 signing certificate
+      #   APPLE_CERTIFICATE_PWD    Password for the .p12 certificate
+      #   APPLE_ID                 Your Apple ID email
+      #   APPLE_ID_PWD             App-specific password for your Apple ID
+      #   APPLE_TEAM_ID            Your Apple Developer Team ID
+      #
+      # Then uncomment the env block below and the notarize config in package.json.
+      # -----------------------------------------------------------------------
+      # - name: Import macOS signing certificate
+      #   if: runner.os == 'macOS'
+      #   env:
+      #     CERTIFICATE_B64: ${{ secrets.APPLE_CERTIFICATE }}
+      #     CERTIFICATE_PWD: ${{ secrets.APPLE_CERTIFICATE_PWD }}
+      #   run: |
+      #     echo "$CERTIFICATE_B64" | base64 --decode > cert.p12
+      #     security create-keychain -p "" build.keychain
+      #     security import cert.p12 -k build.keychain -P "$CERTIFICATE_PWD" -T /usr/bin/codesign
+      #     security list-keychains -s build.keychain
+      #     security default-keychain -s build.keychain
+      #     security unlock-keychain -p "" build.keychain
+      #     security set-key-partition-list -S apple-tool:,apple: -s -k "" build.keychain
+
+      - name: Collect release artifacts
+        id: collect
+        shell: bash
+        run: |
+          FILES=$(ls ${{ matrix.artifact_glob }} 2>/dev/null | tr '\n' '\n')
+          echo "files<<EOF" >> $GITHUB_OUTPUT
+          echo "$FILES" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+
+      - name: Create / update GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.ref_name }}
+          name: "Fonty ${{ github.ref_name }}"
+          draft: false
+          prerelease: ${{ contains(github.ref_name, '-') }}
+          generate_release_notes: true
+          files: |
+            desktop/dist/*.exe
+            desktop/dist/*.AppImage
+            desktop/dist/*.deb
+            desktop/dist/*.dmg
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
