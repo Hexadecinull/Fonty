@@ -1,0 +1,28 @@
+{
+  "name": "fonty",
+  "version": "2.0.0",
+  "description": "Font manager, inspector and converter with best-in-class FNT/AngelCode bitmap font support",
+  "main": "main.js",
+  "author": "Fonty Contributors",
+  "license": "MIT",
+  "scripts": {
+    "start": "electron .",
+    "build": "electron-builder",
+    "build:win": "electron-builder --win",
+    "build:linux": "electron-builder --linux",
+    "build:mac": "electron-builder --mac"
+  },
+  "devDependencies": {
+    "electron": "^31.0.0",
+    "electron-builder": "^24.0.0"
+  },
+  "build": {
+    "appId": "io.fonty.app",
+    "productName": "Fonty",
+    "directories": { "output": "dist" },
+    "files": ["**/*", "!dist/**", "!node_modules/.cache/**"],
+    "win":   { "target": ["nsis", "portable"] },
+    "linux": { "target": ["AppImage", "deb"], "category": "Utility" },
+    "mac":   { "target": ["dmg"] }
+  }
+}
