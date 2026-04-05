@@ -1,9 +1,8 @@
 name: Release
 
-# Push a version tag to trigger, e.g.:
+# Push a version tag to trigger:
 #   git tag v2.1.0 && git push origin v2.1.0
-#
-# Tags with a hyphen (v2.1.0-beta.1) are marked as pre-releases.
+# Tags with a hyphen (e.g. v2.1.0-beta.1) are marked as pre-releases.
 
 on:
   push:
@@ -35,8 +34,6 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 20
-          cache: npm
-          cache-dependency-path: desktop/package.json
 
       - name: Install Linux build dependencies
         if: runner.os == 'Linux'
@@ -47,7 +44,7 @@ jobs:
 
       - name: Install dependencies
         working-directory: desktop
-        run: npm ci
+        run: npm install
 
       - name: Build
         working-directory: desktop
@@ -56,8 +53,8 @@ jobs:
           CI: true
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      # macOS code signing - add these secrets to enable:
-      # APPLE_CERTIFICATE, APPLE_CERTIFICATE_PWD, APPLE_ID, APPLE_ID_PWD, APPLE_TEAM_ID
+      # macOS code signing: add APPLE_CERTIFICATE, APPLE_CERTIFICATE_PWD,
+      # APPLE_ID, APPLE_ID_PWD, APPLE_TEAM_ID secrets to enable notarization.
 
       - name: Publish to GitHub Release
         uses: softprops/action-gh-release@v2
@@ -93,21 +90,18 @@ jobs:
       - name: Accept Android SDK licenses
         run: yes | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --licenses 2>/dev/null || true
 
-      - name: Install Capacitor
+      - name: Install Capacitor dependencies
         working-directory: android
-        run: npm ci
+        run: npm install
 
       - name: Prepare web assets
-        run: |
-          mkdir -p android/www/lib
-          cp index.html app.js app.css android/www/
-          cp lib/fonty.js android/www/lib/
+        run: node android/prepare-web.js
 
-      - name: Add Android platform and sync
+      - name: Sync Capacitor
         working-directory: android
         run: |
-          npx cap add android
-          npx cap sync
+          npx cap add android 2>/dev/null || true
+          npx cap sync android
 
       - name: Build release APK
         working-directory: android/android

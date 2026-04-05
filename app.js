@@ -1093,23 +1093,40 @@ function formatBytes(bytes) {
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 }
 
-// Mobile sidebar toggle
+// Mobile sidebar (bottom sheet)
 (function () {
-  const btnMenu  = document.getElementById('btn-menu');
-  const sidebar  = document.getElementById('sidebar');
-  const overlay  = document.getElementById('sidebar-overlay');
+  const btnMenu = document.getElementById('btn-menu');
+  const sidebar = document.getElementById('sidebar');
+  const overlay = document.getElementById('sidebar-overlay');
   if (!btnMenu) return;
 
-  function openSidebar()  { sidebar.classList.add('open');    overlay.classList.add('visible'); }
-  function closeSidebar() { sidebar.classList.remove('open'); overlay.classList.remove('visible'); }
+  const BREAKPOINT = 760;
+  let touchStartY = 0;
+
+  function isMobile() { return window.innerWidth <= BREAKPOINT; }
+  function openSidebar()  { sidebar.classList.add('open');    overlay.classList.add('visible');  document.body.style.overflow = 'hidden'; }
+  function closeSidebar() { sidebar.classList.remove('open'); overlay.classList.remove('visible'); document.body.style.overflow = ''; }
 
   btnMenu.addEventListener('click', () => {
     sidebar.classList.contains('open') ? closeSidebar() : openSidebar();
   });
   overlay.addEventListener('click', closeSidebar);
 
-  // Close sidebar when a font is selected on mobile
+  // Swipe-down gesture to dismiss the bottom sheet
+  sidebar.addEventListener('touchstart', e => { touchStartY = e.touches[0].clientY; }, { passive: true });
+  sidebar.addEventListener('touchend', e => {
+    if (!isMobile()) return;
+    const dy = e.changedTouches[0].clientY - touchStartY;
+    if (dy > 60) closeSidebar();
+  }, { passive: true });
+
+  // Close after selecting a font on mobile
   el.fontList.addEventListener('click', () => {
-    if (window.innerWidth <= 720) closeSidebar();
+    if (isMobile()) closeSidebar();
+  });
+
+  // Close sidebar if window is resized past the breakpoint
+  window.addEventListener('resize', () => {
+    if (!isMobile()) closeSidebar();
   });
 }());

@@ -186,18 +186,30 @@ body.platform-mac .topbar-brand {
 .logo-lockup {
   display: flex;
   align-items: center;
-  gap: 7px;
+  gap: 8px;
+}
+
+.logo-icon-wrap {
+  width: 28px;
+  height: 28px;
+  background: var(--accent);
+  border-radius: 7px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  box-shadow: 0 1px 8px rgba(123,108,246,.35);
 }
 
 .logo-icon {
-  flex-shrink: 0;
   display: block;
+  flex-shrink: 0;
 }
 
 .logo {
   font-family: var(--font-logo);
   font-weight: 800;
-  font-size: 17px;
+  font-size: 16px;
   color: var(--text0);
   letter-spacing: -.02em;
   line-height: 1;
@@ -205,30 +217,33 @@ body.platform-mac .topbar-brand {
 
 .logo-version {
   font-family: var(--font-mono);
-  font-size: 10px;
-  color: var(--text3);
+  font-size: 9px;
+  color: var(--text2);
   background: var(--bg3);
   border: 1px solid var(--border);
-  padding: 2px 6px;
+  padding: 2px 5px;
   border-radius: 3px;
-  letter-spacing: .04em;
-  margin-left: 2px;
+  letter-spacing: .05em;
   align-self: center;
+  margin-left: 1px;
 }
 
 .btn-menu {
   display: none;
   align-items: center;
   justify-content: center;
-  width: 32px; height: 32px;
+  width: 36px;
+  height: 36px;
   background: transparent;
   border: none;
   color: var(--text1);
   cursor: pointer;
   border-radius: var(--radius);
   flex-shrink: 0;
+  -webkit-tap-highlight-color: transparent;
 }
 .btn-menu:hover { background: var(--bg3); color: var(--text0); }
+.btn-menu:active { background: var(--bg4); }
 
 .topbar-actions {
   display: flex;
@@ -1295,7 +1310,7 @@ textarea.input {
 *::-webkit-scrollbar-track { background: transparent; }
 *::-webkit-scrollbar-thumb { background: var(--bg5); border-radius: 3px; }
 
-/* Statusbar GitHub link and separator */
+/* Statusbar GitHub link */
 .statusbar-link {
   font-size: 10px;
   color: var(--text2);
@@ -1313,31 +1328,47 @@ textarea.input {
   flex-shrink: 0;
 }
 
+/* Mobile sidebar overlay */
 .sidebar-overlay {
   display: none;
   position: fixed;
   inset: 0;
-  background: rgba(0,0,0,.55);
+  background: rgba(0, 0, 0, .6);
   z-index: 150;
-  backdrop-filter: blur(1px);
+  -webkit-backdrop-filter: blur(2px);
+  backdrop-filter: blur(2px);
 }
 
-/* Mobile responsive */
-@media (max-width: 720px) {
+/* =========================================================================
+   Mobile - full redesign for touch screens
+   =========================================================================
+   Strategy:
+   - Single-column layout, sidebar is a bottom sheet (more thumb-friendly
+     than a left drawer on phones)
+   - Tabs become a full-width scrollable pill row
+   - Preview pane is collapsible so content gets maximum vertical space
+   - All tap targets >= 44px (Apple HIG minimum)
+   - Font size and spacing scaled up for legibility at arm's length
+   ========================================================================= */
+
+@media (max-width: 760px) {
   :root {
-    --sidebar-w: 0px;
-    --topbar-h: 50px;
+    --topbar-h:    52px;
+    --statusbar-h: 36px;
+    --sidebar-w:   0px;
   }
 
+  /* ---- Layout ---- */
   .app-shell {
     grid-template-columns: 1fr;
+    grid-template-rows: var(--topbar-h) 1fr var(--statusbar-h);
     grid-template-areas:
       "topbar"
       "main"
       "status";
   }
-
   body.has-titlebar .app-shell {
+    grid-template-rows: 32px var(--topbar-h) 1fr var(--statusbar-h);
     grid-template-areas:
       "titlebar"
       "topbar"
@@ -1345,54 +1376,238 @@ textarea.input {
       "status";
   }
 
+  /* ---- Sidebar: bottom sheet ---- */
   .sidebar {
     position: fixed;
-    left: -280px;
-    top: 0;
-    bottom: 0;
-    width: 280px;
+    left: 0; right: 0;
+    bottom: -100%;
+    top: auto;
+    width: 100%;
+    height: 72vh;
+    max-height: 72vh;
+    border-right: none;
+    border-top: 1px solid var(--border2);
+    border-radius: 16px 16px 0 0;
     z-index: 200;
-    transition: left 0.22s ease;
-    box-shadow: 4px 0 24px rgba(0,0,0,.5);
+    transition: bottom 0.28s cubic-bezier(0.32, 0.72, 0, 1);
+    box-shadow: 0 -12px 48px rgba(0, 0, 0, .55);
+    overflow: hidden;
   }
-  .sidebar.open { left: 0; }
+  .sidebar.open { bottom: 0; }
   .sidebar-overlay.visible { display: block; }
 
-  .btn-menu { display: flex; }
+  /* Pull handle indicator at top of sheet */
+  .sidebar-header::before {
+    content: '';
+    display: block;
+    width: 36px;
+    height: 4px;
+    background: var(--bg5);
+    border-radius: 2px;
+    margin: 0 auto 10px;
+  }
+
+  .sidebar-header {
+    flex-direction: column;
+    gap: 4px;
+    padding: 10px 16px 12px;
+  }
+
+  .font-item {
+    min-height: 56px;
+    padding: 10px 16px;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .font-item-glyph { width: 40px; height: 40px; font-size: 18px; }
+  .font-item-name  { font-size: 13px; }
+  .font-item-sub   { font-size: 11px; }
+  .font-item-remove { opacity: 1; width: 28px; height: 28px; font-size: 14px; }
+
+  .sidebar-actions .btn { height: 36px; padding: 0 14px; font-size: 12px; }
+
+  /* ---- Topbar ---- */
+  .topbar { padding: 0 10px 0 0; }
 
   .topbar-brand {
     width: auto;
-    flex: 1;
+    flex: 0 0 auto;
     border-right: none;
+    padding: 0 4px 0 10px;
+    gap: 8px;
+  }
+
+  .btn-menu { display: flex; }
+
+  /* Hide the less useful topbar controls on small screens */
+  #btn-clear-all,
+  #btn-export-all { display: none; }
+
+  .topbar-actions {
+    flex: 1;
+    justify-content: flex-end;
+    gap: 6px;
+  }
+  .topbar-actions select.input { font-size: 11px; height: 32px; }
+
+  /* ---- Drop zone ---- */
+  .drop-zone {
+    top: var(--topbar-h);
+    padding: 20px;
+  }
+  .drop-icon   { width: 64px; height: 64px; font-size: 26px; border-radius: 14px; }
+  .drop-title  { font-size: 18px; }
+  .drop-sub    { font-size: 13px; letter-spacing: 0; }
+  .drop-actions .btn { height: 44px; font-size: 14px; padding: 0 24px; }
+
+  /* ---- Font detail: stack preview above tabs ---- */
+  #font-detail { flex-direction: column; }
+
+  /* ---- Preview pane ---- */
+  .preview-pane {
+    padding: 14px 14px 10px;
     gap: 10px;
+    flex-shrink: 0;
+    border-bottom: 1px solid var(--border);
   }
 
-  /* Hide less important topbar actions on mobile */
-  .topbar-actions .btn-ghost:not(#btn-open-native) { display: none; }
+  .preview-controls {
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+  .preview-text-input {
+    flex: 1 1 100%;
+    height: 40px;
+    font-size: 14px;
+    order: 0;
+  }
+  .size-control { order: 1; gap: 10px; }
+  .size-slider  { width: 120px; }
+  .size-label   { font-size: 12px; }
+  #btn-metrics  { order: 2; height: 36px; font-size: 12px; }
 
-  .preview-pane { padding: 12px; gap: 10px; }
-  .preview-sample { font-size: 40px !important; }
+  .preview-sample { font-size: 48px !important; }
 
-  .fnt-grid { grid-template-columns: 1fr 1fr; }
-  .meta-grid { grid-template-columns: 1fr; }
+  /* Waterfall: show fewer sizes, larger gaps */
+  .preview-waterfall { gap: 10px; }
+  .waterfall-swatch  { font-size: inherit; }
 
+  /* ---- Tabs ---- */
+  .tabs {
+    padding: 0;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    display: flex;
+    border-bottom: 1px solid var(--border);
+  }
+  .tabs::-webkit-scrollbar { display: none; }
+
+  .tab {
+    flex: 1 0 auto;
+    min-width: 70px;
+    height: 44px;
+    font-size: 13px;
+    padding: 0 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  /* ---- Tab content ---- */
+  .tab-content { padding: 14px; gap: 14px; }
+
+  /* ---- Meta grid ---- */
+  .meta-grid { grid-template-columns: 1fr; gap: 8px; }
+  .meta-field.full { grid-column: 1; }
+  .input { height: 40px; font-size: 14px; }
+  .meta-label { font-size: 11px; }
+  .meta-actions { gap: 10px; flex-wrap: wrap; }
+  .meta-actions .btn { height: 40px; font-size: 13px; flex: 1 1 auto; }
+
+  /* ---- FNT options ---- */
+  .fnt-grid { grid-template-columns: 1fr 1fr; gap: 10px; }
+  .fnt-label { font-size: 11px; }
+  .input-sm  { height: 38px; font-size: 13px; }
+
+  .charset-presets { gap: 6px; }
+  .preset-btn {
+    height: 32px;
+    padding: 0 10px;
+    font-size: 11px;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  /* ---- Glyphs tab ---- */
+  .glyph-bar { gap: 8px; }
+  .glyph-bar .input { height: 40px; font-size: 14px; }
   .glyph-grid {
-    grid-template-columns: repeat(auto-fill, minmax(44px, 1fr));
-    gap: 3px;
+    grid-template-columns: repeat(auto-fill, minmax(54px, 1fr));
+    gap: 5px;
   }
+  .glyph-cell { border-radius: 6px; min-height: 58px; }
+  .glyph-char { font-size: 22px; }
+  .glyph-code { font-size: 9px; }
 
-  .tab { padding: 10px 10px; font-size: 11px; }
+  /* ---- CSS tab ---- */
+  .snippet-block { gap: 6px; }
+  .snippet-code  { font-size: 11px; padding: 10px; }
+  .btn-copy      { height: 32px; font-size: 11px; padding: 0 10px; }
 
-  .btn { min-height: 40px; }
+  /* ---- Info table ---- */
+  .info-table td { padding: 7px 0; font-size: 12px; }
+  .info-table td:first-child { width: 110px; }
 
-  .font-item { min-height: 56px; }
+  /* ---- Section headers ---- */
+  .section-title { font-size: 10px; }
+  .convert-row { flex-wrap: wrap; gap: 8px; }
+  .convert-row .input { flex: 1 1 auto; height: 40px; }
+  .convert-row .btn { height: 40px; flex: 0 0 auto; min-width: 90px; }
 
-  .tabs { padding: 0 10px; }
+  /* ---- Modals: full-screen on mobile ---- */
+  .modal-overlay { align-items: flex-end; padding: 0; }
+  .modal, .modal-wide {
+    width: 100%;
+    max-width: 100%;
+    max-height: 90vh;
+    border-radius: 16px 16px 0 0;
+    border-bottom: none;
+  }
+  .modal-header { padding: 16px 18px 14px; }
+  .modal-body   { padding: 14px 18px; }
+  .modal-footer { padding: 14px 18px 24px; }
+  .modal-footer .btn { height: 44px; flex: 1; }
+  .modal-title { font-size: 16px; }
 
-  .statusbar-right .statusbar-item { display: none; }
+  /* Atlas modal images */
+  .atlas-img { image-rendering: auto; }
+
+  /* ---- Statusbar ---- */
+  .statusbar {
+    padding: 0 12px;
+    height: var(--statusbar-h);
+    font-size: 11px;
+  }
+  .statusbar-item { font-size: 11px; }
+  .statusbar-item span:first-child { display: none; }
+  .statusbar-item .val { font-size: 11px; }
+  /* Keep GitHub link visible on mobile */
+  .statusbar-right { gap: 8px; }
+
+  /* ---- Variable axes ---- */
+  .var-axes-grid { grid-template-columns: 1fr; }
+  .var-axis { grid-template-columns: 90px 1fr 44px; gap: 8px; }
+  .var-axis-name { font-size: 12px; }
+  .var-axis-value { font-size: 12px; }
+
+  /* ---- Toasts ---- */
+  .toast-stack { left: 12px; right: 12px; bottom: calc(var(--statusbar-h) + 8px); }
+  .toast { max-width: 100%; font-size: 13px; }
 }
 
-@media (max-width: 480px) {
+/* Extra-small phones */
+@media (max-width: 400px) {
   .logo-version { display: none; }
-  .topbar-actions select { display: none; }
+  .topbar-actions select.input { display: none; }
+  .fnt-grid { grid-template-columns: 1fr; }
+  .glyph-grid { grid-template-columns: repeat(auto-fill, minmax(48px, 1fr)); }
 }

@@ -38,20 +38,18 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 20
-          cache: npm
-          cache-dependency-path: desktop/package.json
 
       - name: Install Linux build dependencies
         if: runner.os == 'Linux'
         run: |
           sudo apt-get update -y
-          # libfuse2 was renamed to libfuse2t64 in Ubuntu 24.04
+          # libfuse2 was renamed to libfuse2t64 on Ubuntu 24.04
           sudo apt-get install -y libfuse2t64 2>/dev/null || sudo apt-get install -y libfuse2
           sudo apt-get install -y libgtk-3-dev libnotify-dev libnss3 libxss1 libxtst6 xvfb
 
       - name: Install dependencies
         working-directory: desktop
-        run: npm ci
+        run: npm install
 
       - name: Build
         working-directory: desktop
@@ -85,21 +83,18 @@ jobs:
       - name: Accept Android SDK licenses
         run: yes | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --licenses 2>/dev/null || true
 
-      - name: Install Capacitor
+      - name: Install Capacitor dependencies
         working-directory: android
-        run: npm ci
+        run: npm install
 
       - name: Prepare web assets
-        run: |
-          mkdir -p android/www/lib
-          cp index.html app.js app.css android/www/
-          cp lib/fonty.js android/www/lib/
+        run: node android/prepare-web.js
 
-      - name: Add Android platform and sync
+      - name: Sync Capacitor
         working-directory: android
         run: |
-          npx cap add android
-          npx cap sync
+          npx cap add android 2>/dev/null || true
+          npx cap sync android
 
       - name: Build debug APK
         working-directory: android/android
