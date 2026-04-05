@@ -25,3 +25,10 @@ for (const [src, dst] of files) {
 }
 
 console.log('Web assets ready in android/www/');
+
+// Patch Capacitor Gradle files to remove flatDir warnings (run after cap sync)
+try {
+  require('./gradle-fix.js');
+} catch (_) {
+  // Gradle files not present yet (before first cap sync) - this is expected
+}

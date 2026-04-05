@@ -39,6 +39,55 @@
   --topbar-h:  44px;
   --statusbar-h: 26px;
 }
+/* ===========================================================================
+   Animation System
+   =========================================================================== */
+
+:root {
+  --dur-fast:    120ms;
+  --dur-normal:  200ms;
+  --dur-slow:    320ms;
+  --ease-out:    cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+  --ease-snap:   cubic-bezier(0.25, 0.46, 0.45, 0.94);
+}
+
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+@keyframes scaleIn {
+  from { opacity: 0; transform: scale(0.94); }
+  to   { opacity: 1; transform: scale(1); }
+}
+@keyframes slideInRight {
+  from { opacity: 0; transform: translateX(12px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+@keyframes shimmer {
+  0%   { background-position: -200% 0; }
+  100% { background-position:  200% 0; }
+}
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: .35; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 1ms !important;
+    transition-duration: 1ms !important;
+  }
+}
+
+
 
 /* ===========================================================================
    Reset
@@ -79,6 +128,7 @@ a:hover { color: var(--accent-hover); }
   display: flex;
   flex-direction: column;
   overflow: hidden;
+  animation: fadeIn var(--dur-normal) var(--ease-out);
 }
 
 /* ===========================================================================
@@ -94,6 +144,7 @@ a:hover { color: var(--accent-hover); }
     "sidebar main"
     "status  status";
   height: 100vh;
+  height: 100dvh;
 }
 
 /* Electron custom titlebar pushes everything down */
@@ -176,56 +227,62 @@ body.platform-mac .topbar-brand {
 .topbar-brand {
   display: flex;
   align-items: center;
-  gap: 0;
+  gap: 10px;
   width: var(--sidebar-w);
-  padding: 0 16px;
+  padding: 0 14px;
   border-right: 1px solid var(--border);
   height: 100%;
+  flex-shrink: 0;
 }
 
 .logo-lockup {
   display: flex;
   align-items: center;
-  gap: 8px;
-}
-
-.logo-icon-wrap {
-  width: 28px;
-  height: 28px;
-  background: var(--accent);
-  border-radius: 7px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  gap: 9px;
   flex-shrink: 0;
-  box-shadow: 0 1px 8px rgba(123,108,246,.35);
 }
 
-.logo-icon {
+/* Logo mark: two overlapping rounded rectangles forming an "F" glyph shape */
+.logo-mark {
+  position: relative;
+  width: 26px;
+  height: 26px;
+  flex-shrink: 0;
+}
+.logo-mark svg {
   display: block;
-  flex-shrink: 0;
+  width: 26px;
+  height: 26px;
+  filter: drop-shadow(0 1px 6px rgba(123, 108, 246, .45));
+  transition: filter var(--dur-normal), transform var(--dur-normal) var(--ease-spring);
+}
+.logo-lockup:hover .logo-mark svg {
+  filter: drop-shadow(0 2px 10px rgba(123, 108, 246, .65));
+  transform: rotate(-6deg) scale(1.08);
 }
 
 .logo {
   font-family: var(--font-logo);
   font-weight: 800;
-  font-size: 16px;
+  font-size: 15px;
   color: var(--text0);
-  letter-spacing: -.02em;
+  letter-spacing: -.01em;
   line-height: 1;
+  flex-shrink: 0;
 }
 
+/* Version badge - separated from the lockup with its own margin */
 .logo-version {
   font-family: var(--font-mono);
   font-size: 9px;
-  color: var(--text2);
-  background: var(--bg3);
+  color: var(--text3);
+  background: var(--bg2);
   border: 1px solid var(--border);
   padding: 2px 5px;
   border-radius: 3px;
-  letter-spacing: .05em;
-  align-self: center;
-  margin-left: 1px;
+  letter-spacing: .06em;
+  flex-shrink: 0;
+  /* deliberate gap from the logo-lockup via the parent's gap:10px */
 }
 
 .btn-menu {
@@ -267,16 +324,18 @@ body.platform-mac .topbar-brand {
   font-size: 12px;
   font-weight: 500;
   white-space: nowrap;
-  transition: background 0.12s, color 0.12s, opacity 0.12s;
+  transition: background var(--dur-fast), color var(--dur-fast), opacity var(--dur-fast), transform var(--dur-fast);
   text-decoration: none;
 }
+.btn:active:not(:disabled) { transform: scale(0.96); }
 .btn:disabled { opacity: .38; pointer-events: none; }
 
 .btn-primary {
   background: var(--accent);
   color: #fff;
 }
-.btn-primary:hover { background: var(--accent-hover); }
+.btn-primary:hover { background: var(--accent-hover); transform: translateY(-1px); box-shadow: 0 4px 12px rgba(123,108,246,.3); }
+.btn-primary:active { transform: scale(0.97) translateY(0); box-shadow: none; }
 
 .btn-secondary {
   background: var(--bg4);
@@ -334,7 +393,7 @@ body.platform-mac .topbar-brand {
   transition: border-color 0.12s;
   width: 100%;
 }
-.input:focus { border-color: var(--accent); }
+.input:focus { border-color: var(--accent); box-shadow: 0 0 0 2px rgba(123,108,246,.15); }
 .input::placeholder { color: var(--text3); }
 
 .input-mono { font-family: var(--font-mono); }
@@ -417,6 +476,12 @@ textarea.input {
   overflow-y: auto;
   flex: 1;
   padding: 4px 0;
+  counter-reset: font-item;
+}
+.font-item {
+  counter-increment: font-item;
+  animation: fadeUp var(--dur-normal) var(--ease-out) both;
+  animation-delay: calc((counter(font-item) - 1) * 30ms);
 }
 
 .font-list::-webkit-scrollbar { width: 4px; }
@@ -437,6 +502,7 @@ textarea.input {
 .font-item:hover { background: var(--bg3); }
 .font-item.active {
   background: var(--accent-dim);
+  transition: background var(--dur-fast);
 }
 .font-item.active::before {
   content: '';
@@ -692,6 +758,8 @@ textarea.input {
   color: var(--text0);
   white-space: nowrap;
   overflow: hidden;
+  transition: font-size var(--dur-fast) var(--ease-snap), font-family var(--dur-normal);
+  will-change: font-size;
 }
 
 /* Metric guide lines */
@@ -734,6 +802,7 @@ textarea.input {
   color: var(--text1);
   white-space: nowrap;
   flex-shrink: 0;
+  animation: slideInRight var(--dur-normal) var(--ease-out) both;
 }
 
 /* Variable axes */
@@ -815,7 +884,7 @@ textarea.input {
   border: none;
   border-bottom: 2px solid transparent;
   cursor: pointer;
-  transition: color 0.12s, border-color 0.12s;
+  transition: color var(--dur-fast), border-color var(--dur-fast), background var(--dur-fast);
   margin-bottom: -1px;
   white-space: nowrap;
 }
@@ -832,7 +901,7 @@ textarea.input {
 }
 .tab-content::-webkit-scrollbar { width: 4px; }
 .tab-content::-webkit-scrollbar-thumb { background: var(--bg5); border-radius: 2px; }
-.tab-content.active { display: flex; flex-direction: column; gap: 16px; }
+.tab-content.active { display: flex; flex-direction: column; gap: 16px; animation: fadeUp var(--dur-normal) var(--ease-out) both; }
 
 /* ===========================================================================
    Section headers inside tabs
@@ -1014,9 +1083,11 @@ textarea.input {
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);
   cursor: pointer;
-  transition: background 0.1s, border-color 0.1s;
+  transition: background var(--dur-fast), border-color var(--dur-fast), transform var(--dur-fast);
   padding: 4px;
+  animation: fadeIn var(--dur-normal) var(--ease-out) both;
 }
+.glyph-cell:active { transform: scale(0.88); }
 .glyph-cell:hover { background: var(--bg3); border-color: var(--border2); }
 .glyph-cell:active { background: var(--bg4); }
 .glyph-char { font-size: 20px; line-height: 1; color: var(--text0); }
@@ -1076,6 +1147,7 @@ textarea.input {
   justify-content: center;
   z-index: 500;
   backdrop-filter: blur(2px);
+  animation: fadeIn var(--dur-fast) ease;
 }
 
 .modal {
@@ -1088,6 +1160,7 @@ textarea.input {
   display: flex;
   flex-direction: column;
   box-shadow: 0 24px 64px rgba(0,0,0,.6);
+  animation: scaleIn var(--dur-normal) var(--ease-out) both;
 }
 .modal-wide { width: 760px; }
 
@@ -1150,7 +1223,7 @@ textarea.input {
   height: 100%;
   background: var(--accent);
   border-radius: 2px;
-  transition: width 0.2s;
+  transition: width var(--dur-normal) var(--ease-snap);
   width: 0;
 }
 .progress-label { font-size: 12px; color: var(--text1); font-family: var(--font-mono); }
@@ -1263,8 +1336,8 @@ textarea.input {
 .toast.warning::before { background: var(--yellow); }
 
 @keyframes toast-in {
-  from { opacity: 0; transform: translateY(6px); }
-  to   { opacity: 1; transform: translateY(0); }
+  from { opacity: 0; transform: translateY(10px) scale(0.97); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
 }
 @keyframes toast-out {
   to { opacity: 0; transform: translateY(-4px); }
@@ -1359,6 +1432,9 @@ textarea.input {
   }
 
   /* ---- Layout ---- */
+  /* Use dynamic viewport height so browser chrome doesn't clip header/footer */
+  html, body { height: 100%; height: 100dvh; }
+
   .app-shell {
     grid-template-columns: 1fr;
     grid-template-rows: var(--topbar-h) 1fr var(--statusbar-h);
@@ -1366,6 +1442,9 @@ textarea.input {
       "topbar"
       "main"
       "status";
+    height: 100%;
+    height: 100dvh;
+    min-height: -webkit-fill-available;
   }
   body.has-titlebar .app-shell {
     grid-template-rows: 32px var(--topbar-h) 1fr var(--statusbar-h);

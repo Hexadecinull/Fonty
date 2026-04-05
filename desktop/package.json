@@ -11,10 +11,10 @@
   "license": "GPL-3.0",
   "scripts": {
     "start": "electron .",
-    "build":       "electron-builder",
-    "build:win":   "electron-builder --win",
+    "build": "electron-builder",
+    "build:win": "electron-builder --win",
     "build:linux": "electron-builder --linux",
-    "build:mac":   "electron-builder --mac"
+    "build:mac": "electron-builder --mac"
   },
   "devDependencies": {
     "electron": "^31.0.0",
@@ -40,8 +40,19 @@
     ],
     "win": {
       "target": [
-        { "target": "nsis",     "arch": ["x64", "ia32"] },
-        { "target": "portable", "arch": ["x64"] }
+        {
+          "target": "nsis",
+          "arch": [
+            "x64",
+            "ia32"
+          ]
+        },
+        {
+          "target": "portable",
+          "arch": [
+            "x64"
+          ]
+        }
       ],
       "artifactName": "${productName}-Setup-${version}-${arch}.${ext}"
     },
@@ -49,28 +60,43 @@
       "oneClick": false,
       "allowToChangeInstallationDirectory": true,
       "createDesktopShortcut": true,
-      "createStartMenuShortcut": true,
-      "compression": "lzma"
+      "createStartMenuShortcut": true
     },
     "linux": {
-      "target": ["AppImage", "deb"],
+      "target": [
+        "AppImage",
+        "deb"
+      ],
       "category": "Utility",
       "maintainer": "Fonty Contributors <noreply@fonty.app>",
       "artifactName": "${productName}-${version}-${arch}.${ext}"
     },
     "deb": {
       "packageCategory": "utils",
-      "depends": ["libnotify4", "libxtst6", "libnss3"]
+      "depends": [
+        "libnotify4",
+        "libxtst6",
+        "libnss3"
+      ]
     },
     "mac": {
       "target": [
-        { "target": "dmg", "arch": ["x64", "arm64"] }
+        {
+          "target": "dmg",
+          "arch": [
+            "x64",
+            "arm64"
+          ]
+        }
       ],
       "category": "public.app-category.utilities",
       "artifactName": "${productName}-${version}-${arch}.${ext}"
     },
     "dmg": {
-      "window": { "width": 540, "height": 380 }
+      "window": {
+        "width": 540,
+        "height": 380
+      }
     }
   }
 }
