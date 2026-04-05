@@ -1,0 +1,13 @@
+{
+  "appId": "io.fonty.app",
+  "appName": "Fonty",
+  "webDir": "www",
+  "server": {
+    "androidScheme": "https"
+  },
+  "plugins": {
+    "SplashScreen": {
+      "launchShowDuration": 0
+    }
+  }
+}

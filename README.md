@@ -2,28 +2,29 @@
 
 Font manager, inspector and converter. Best-in-class AngelCode FNT bitmap font support.
 
+**[GitHub](https://github.com/Hexadecinull/Fonty)** — Found a bug, a warning, a wrong value, or anything that looks off? Please open an issue or pull request without hesitation. Even the tiniest thing is worth reporting. PRs for fixes, features, or improvements of any size are always welcome.
+
 ---
 
 ## Versions
 
-| Version | Location | How to use |
-|---------|----------|------------|
-| Web     | `/` (root) | Open `index.html` in any modern browser, or deploy to GitHub Pages |
-| Desktop | `desktop/` | Electron app with native file dialogs |
+| Version  | Location    | How to use                                              |
+|----------|-------------|---------------------------------------------------------|
+| Web      | `/` (root)  | Open `index.html` in any modern browser, or push to GitHub Pages (root or `docs/`) |
+| Desktop  | `desktop/`  | Electron app — native dialogs, custom titlebar          |
+| Android  | `android/`  | Capacitor app — runs the web UI natively on Android     |
 
-The web and desktop versions share the same codebase. Electron features (native dialogs, custom titlebar, folder export) activate automatically when running inside Electron.
-
----
-
-## Running the web version
-
-Just open `index.html` in a browser. No build step, no server required.
-
-For GitHub Pages, push to the `main` branch and enable Pages from root (`/`).
+The web, desktop, and Android versions all share `index.html`, `app.js`, `app.css`, and `lib/fonty.js`. Electron and Capacitor features activate automatically at runtime when their respective bridges are detected, so there is no separate codebase to maintain.
 
 ---
 
-## Running the desktop version
+## Web
+
+Open `index.html` directly in a browser, or deploy to GitHub Pages from the repo root. No build step needed.
+
+---
+
+## Desktop (Electron)
 
 ```bash
 cd desktop
@@ -31,124 +32,200 @@ npm install
 npm start
 ```
 
-### Building a distributable
+### Build distributable
 
 ```bash
-npm run build        # auto-detects current platform
-npm run build:win    # Windows NSIS installer + portable
-npm run build:linux  # AppImage + .deb
-npm run build:mac    # .dmg
+npm run build:win    # Windows: NSIS installer (.exe) + portable (.exe)
+npm run build:linux  # Linux: AppImage + .deb
+npm run build:mac    # macOS: .dmg (x64 + arm64)
 ```
 
-Output goes to `desktop/dist/`.
+Output lands in `desktop/dist/`.
+
+**Requirements:** Node.js 18+, and on Linux: `libfuse2` or `libfuse2t64` for AppImage support.
+
+---
+
+## Android (Capacitor)
+
+Capacitor wraps the web UI in a native Android WebView. No React Native, no custom bridge code.
+
+### First-time setup
+
+```bash
+# Install dependencies
+cd android
+npm install
+
+# Copy web assets, initialise Capacitor, open Android Studio
+npm run android
+```
+
+Android Studio will open with the project ready to run on a device or emulator.
+
+### Build from command line
+
+```bash
+# Debug APK (no signing required)
+npm run build:debug
+
+# Release APK (requires a keystore configured in android/android/app/build.gradle)
+npm run build:release
+```
+
+APKs are written to `android/android/app/build/outputs/apk/`.
+
+### Signing for release
+
+To publish on the Play Store, generate a keystore and add signing config to `android/android/app/build.gradle`:
+
+```groovy
+android {
+    signingConfigs {
+        release {
+            storeFile file(System.getenv("KEYSTORE_PATH") ?: "keystore.jks")
+            storePassword System.getenv("KEYSTORE_PASSWORD")
+            keyAlias System.getenv("KEY_ALIAS")
+            keyPassword System.getenv("KEY_PASSWORD")
+        }
+    }
+    buildTypes {
+        release {
+            signingConfig signingConfigs.release
+        }
+    }
+}
+```
+
+---
+
+## CI / Releases
+
+Two GitHub Actions workflows live in `.github/workflows/`:
+
+| Workflow       | Triggers on             | What it does                                                    |
+|----------------|-------------------------|-----------------------------------------------------------------|
+| `build.yml`    | Push to main, any PR    | Builds Electron (Win/Linux/macOS) and Android debug APK. Uploads artifacts to the Actions tab (14-day retention). |
+| `release.yml`  | Push a `v*` tag         | Builds all platforms and publishes a GitHub Release with all artifacts attached. Tags containing a hyphen are marked as pre-releases. |
+
+### Publishing a release
+
+```bash
+git tag v2.1.0
+git push origin v2.1.0
+```
+
+That is all. The release workflow handles the rest.
+
+### macOS code signing (optional)
+
+Add these repository secrets to enable notarization:
+
+| Secret                | Description                              |
+|-----------------------|------------------------------------------|
+| `APPLE_CERTIFICATE`   | Base64-encoded `.p12` signing certificate |
+| `APPLE_CERTIFICATE_PWD` | Password for the `.p12`               |
+| `APPLE_ID`            | Apple ID email                           |
+| `APPLE_ID_PWD`        | App-specific password                    |
+| `APPLE_TEAM_ID`       | Apple Developer Team ID                  |
 
 ---
 
 ## Features
 
 ### Font loading
-- Drag and drop from the OS or click Browse.
-- Formats: TTF, OTF, WOFF, WOFF2, FNT (AngelCode text, XML, and binary).
-- Multiple fonts loaded at once, listed in the sidebar.
-- Variable fonts are detected and labelled.
+- Drag and drop or click Browse. Supported: TTF, OTF, WOFF, WOFF2, FNT (AngelCode text, XML, binary).
+- Multiple fonts in one session.
+- Variable fonts detected and labelled.
 
 ### Preview
-- Live preview with editable text and font size slider (12 to 200 px).
-- Waterfall view at 6 standard sizes.
-- Metric guides (ascender, cap height, x-height, baseline, descender) toggle on/off.
-- Variable font axes: sliders for every axis with live preview.
+- Live text preview with size slider (12 to 200 px).
+- Waterfall view at 6 preset sizes.
+- Metric guides: ascender, cap height, x-height, baseline, descender (toggle on/off).
+- Variable font axes: one slider per axis, live preview as you drag.
 
-### Metadata (vector fonts)
-- Inspect and edit all name table fields: family, subfamily, PostScript name, version, designer, copyright, license, and more.
-- Save back to the in-memory font (applied on next export).
-- Bitmap (FNT) fonts show read-only stats: atlas size, line height, character count, etc.
+### Metadata
+- View and edit all name table fields on vector fonts.
+- Bitmap (FNT) fonts show read-only stats: atlas size, line height, character count, kerning pairs.
 
 ### Convert
-- Export any loaded font to TTF, OTF, WOFF, WOFF2, or FNT.
-- Batch export: all loaded fonts in one go.
+- Single export or batch export all loaded fonts.
+- Formats: TTF, OTF, WOFF, WOFF2, FNT.
 
 ### FNT / AngelCode bitmap font
 
-This is the core differentiator. Most tools produce broken or incomplete FNT files.
+Fonty is one of the only tools to fully support the AngelCode FNT format in both directions.
 
-**Generation (vector to FNT):**
-- Accurate glyph rendering via opentype.js `glyph.draw()` with exact bbox placement.
-  Coordinate contract: `x = atlasX - bbox.x1 * scale`, `y = atlasY + bbox.y2 * scale`,
-  which positions each glyph cell exactly at its recorded atlas coordinates.
-- Proper metrics: xoffset, yoffset, xadvance all derived from the font's units-per-em.
-- Kerning pairs: extracted via `font.getKerningValue()` for every character pair in the charset.
-- Multi-page atlas: glyphs that overflow one page automatically spill to a new page.
-- Shelf bin-packing: glyphs sorted by height for efficient packing.
-- Auto atlas size: smallest power-of-2 that fits the charset (with 30% slack), or manually set.
-- Three output formats:
-  - Text: standard `.fnt` compatible with all AngelCode-aware engines.
-  - XML: Hiero-style XML `.fnt`.
-  - Binary: full BMF v3 binary format with all 5 block types (info, common, pages, chars, kerning).
+**Generating (vector to FNT):**
+- Glyph rendering via `opentype.js` `glyph.draw()` with mathematically correct bbox-derived origin placement.
+- Proper xoffset, yoffset, xadvance from the font's units-per-em.
+- Kerning pairs from `kern`/`GPOS` tables.
+- Multi-page atlas with shelf bin-packing.
+- Auto atlas size (smallest power-of-2 that fits), or manual.
+- Output: Text `.fnt`, XML `.fnt` (Hiero-compatible), Binary BMF v3 (all 5 block types).
 
-**Parsing (reading FNT files):**
-- Text format: full attribute parser.
-- Binary format: all 5 block types including info (face name, smooth, bold, italic flags), pages, and kerning.
-- XML format: DOMParser-based, compatible with Hiero and AngelCode XML exports.
-- Auto-detection: BMF magic bytes, XML declaration, or `info` tag.
+**Reading FNT files:**
+- Text format, XML format (DOMParser), Binary BMF v3 (all 5 blocks: info, common, pages, chars, kerning).
+- Auto-detection by magic bytes, XML declaration, or `info` keyword.
 
-**Charset presets:**
-- ASCII (95 printable characters)
-- Extended ASCII (224 characters, 32-255)
-- Digits, Alphanumeric
-- Latin Extended A+B (with diacritics)
-- ASCII + Cyrillic
-- ASCII + Greek
-- ASCII + Hiragana
-- Custom (type anything)
+**Charset presets:** ASCII, Extended ASCII, Digits, Alphanumeric, Latin Extended A+B, Cyrillic, Greek, Hiragana, Custom.
 
 ### Glyphs
-- Grid of all glyphs in the font with Unicode code points.
-- Search by character or by hex code (`U+0041` or just `0041`).
-- Click any glyph to copy the character to the clipboard.
-- Up to 600 glyphs shown at once, search narrows the set.
+- Full glyph grid with Unicode code points. Click any glyph to copy the character.
+- Search by character or hex code.
 
-### CSS snippets (new in v2.1)
-- Ready-to-paste `@font-face` block.
-- Usage example with `font-family`.
-- Base64 data URI.
-- Variable font `font-variation-settings` snippet with axis ranges annotated.
-- One-click copy buttons throughout.
+### CSS snippets
+- `@font-face` block, usage example, base64 data URI.
+- Variable font `font-variation-settings` with axis ranges annotated.
+- One-click copy.
 
 ---
 
 ## Keyboard shortcuts
 
-| Key | Action |
-|-----|--------|
-| Ctrl/Cmd + O | Open file picker (web) |
-| Escape | Close any open modal |
+| Shortcut       | Action                        |
+|----------------|-------------------------------|
+| Ctrl/Cmd + O   | Open file picker (web)        |
+| Escape         | Close any open modal          |
 
 ---
 
 ## Architecture
 
 ```
-index.html       Main HTML shell
-app.js           UI logic, event handling, state management
-app.css          Design system and component styles
+index.html       Shell, markup
+app.js           UI logic and state
+app.css          Design system
 lib/
-  fonty.js       Core library: parsing, conversion, FNT generation
+  fonty.js       Core library (parsing, conversion, FNT generation)
+desktop/
+  main.js        Electron main process
+  preload.js     Context bridge
+  package.json   Electron build config
+android/
+  capacitor.config.json   Capacitor project config
+  package.json            Capacitor dependencies
+  prepare-web.js          Script that copies web assets into android/www/
+.github/
+  workflows/
+    build.yml     CI build workflow
+    release.yml   Release workflow
 ```
-
-The library (`lib/fonty.js`) has no build step. It wraps itself in a UMD pattern and exports `Fonty` to the global scope (browser) or via `module.exports` (Node.js / Electron main). It depends on `opentype.js` (font parsing and glyph rendering) and `pako` (WOFF zlib compression).
 
 ---
 
-## Dependencies (loaded from CDN)
+## Dependencies
 
-| Library | Version | Purpose |
-|---------|---------|---------|
-| opentype.js | 1.3.4 | TTF/OTF/WOFF parsing and glyph rendering |
-| pako | 2.1.0 | Deflate compression for WOFF output |
-| wawoff2 | 2.0.1 | Brotli decompression/compression for WOFF2 (optional, loaded on demand) |
+| Library      | Version | Purpose                                          |
+|--------------|---------|--------------------------------------------------|
+| opentype.js  | 1.3.4   | Font parsing and glyph rendering (CDN)           |
+| pako         | 2.1.0   | Deflate compression for WOFF output (CDN)        |
+| wawoff2      | 2.0.1   | Brotli for WOFF2 (CDN, loaded on demand)         |
+| Electron     | 31      | Desktop wrapper (dev dependency)                 |
+| Capacitor    | 6       | Android wrapper (dev dependency)                 |
 
 ---
 
 ## License
 
-MIT
+GPL-3.0. See `LICENSE` for the full text.

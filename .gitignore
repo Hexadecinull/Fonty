@@ -96,3 +96,8 @@ logs/
 # Temp files
 tmp/
 temp/
+
+# Android Capacitor generated directories
+android/www/
+android/android/
+android/node_modules/

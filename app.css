@@ -183,12 +183,23 @@ body.platform-mac .topbar-brand {
   height: 100%;
 }
 
+.logo-lockup {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+
+.logo-icon {
+  flex-shrink: 0;
+  display: block;
+}
+
 .logo {
   font-family: var(--font-logo);
   font-weight: 800;
-  font-size: 18px;
+  font-size: 17px;
   color: var(--text0);
-  letter-spacing: -.01em;
+  letter-spacing: -.02em;
   line-height: 1;
 }
 
@@ -196,14 +207,28 @@ body.platform-mac .topbar-brand {
   font-family: var(--font-mono);
   font-size: 10px;
   color: var(--text3);
-  margin-left: 8px;
-  padding: 1px 5px;
   background: var(--bg3);
+  border: 1px solid var(--border);
+  padding: 2px 6px;
   border-radius: 3px;
   letter-spacing: .04em;
-  align-self: flex-end;
-  margin-bottom: 2px;
+  margin-left: 2px;
+  align-self: center;
 }
+
+.btn-menu {
+  display: none;
+  align-items: center;
+  justify-content: center;
+  width: 32px; height: 32px;
+  background: transparent;
+  border: none;
+  color: var(--text1);
+  cursor: pointer;
+  border-radius: var(--radius);
+  flex-shrink: 0;
+}
+.btn-menu:hover { background: var(--bg3); color: var(--text0); }
 
 .topbar-actions {
   display: flex;
@@ -1269,3 +1294,105 @@ textarea.input {
 *::-webkit-scrollbar { width: 6px; height: 6px; }
 *::-webkit-scrollbar-track { background: transparent; }
 *::-webkit-scrollbar-thumb { background: var(--bg5); border-radius: 3px; }
+
+/* Statusbar GitHub link and separator */
+.statusbar-link {
+  font-size: 10px;
+  color: var(--text2);
+  text-decoration: none;
+  font-family: var(--font-mono);
+  padding: 2px 6px;
+  border-radius: 3px;
+  transition: color 0.1s, background 0.1s;
+}
+.statusbar-link:hover { color: var(--accent); background: var(--accent-dimmer); }
+
+.statusbar-sep-v {
+  width: 1px; height: 10px;
+  background: var(--border2);
+  flex-shrink: 0;
+}
+
+.sidebar-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,.55);
+  z-index: 150;
+  backdrop-filter: blur(1px);
+}
+
+/* Mobile responsive */
+@media (max-width: 720px) {
+  :root {
+    --sidebar-w: 0px;
+    --topbar-h: 50px;
+  }
+
+  .app-shell {
+    grid-template-columns: 1fr;
+    grid-template-areas:
+      "topbar"
+      "main"
+      "status";
+  }
+
+  body.has-titlebar .app-shell {
+    grid-template-areas:
+      "titlebar"
+      "topbar"
+      "main"
+      "status";
+  }
+
+  .sidebar {
+    position: fixed;
+    left: -280px;
+    top: 0;
+    bottom: 0;
+    width: 280px;
+    z-index: 200;
+    transition: left 0.22s ease;
+    box-shadow: 4px 0 24px rgba(0,0,0,.5);
+  }
+  .sidebar.open { left: 0; }
+  .sidebar-overlay.visible { display: block; }
+
+  .btn-menu { display: flex; }
+
+  .topbar-brand {
+    width: auto;
+    flex: 1;
+    border-right: none;
+    gap: 10px;
+  }
+
+  /* Hide less important topbar actions on mobile */
+  .topbar-actions .btn-ghost:not(#btn-open-native) { display: none; }
+
+  .preview-pane { padding: 12px; gap: 10px; }
+  .preview-sample { font-size: 40px !important; }
+
+  .fnt-grid { grid-template-columns: 1fr 1fr; }
+  .meta-grid { grid-template-columns: 1fr; }
+
+  .glyph-grid {
+    grid-template-columns: repeat(auto-fill, minmax(44px, 1fr));
+    gap: 3px;
+  }
+
+  .tab { padding: 10px 10px; font-size: 11px; }
+
+  .btn { min-height: 40px; }
+
+  .font-item { min-height: 56px; }
+
+  .tabs { padding: 0 10px; }
+
+  .statusbar-right .statusbar-item { display: none; }
+}
+
+@media (max-width: 480px) {
+  .logo-version { display: none; }
+  .topbar-actions select { display: none; }
+}

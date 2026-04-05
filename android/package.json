@@ -1,0 +1,20 @@
+{
+  "name": "fonty-android",
+  "version": "2.1.0",
+  "description": "Fonty Android app via Capacitor",
+  "license": "GPL-3.0",
+  "scripts": {
+    "prepare": "node prepare-web.js",
+    "android": "npm run prepare && npx cap sync && npx cap open android",
+    "sync": "npm run prepare && npx cap sync",
+    "build:debug":   "npm run prepare && npx cap sync && cd android && ./gradlew assembleDebug",
+    "build:release": "npm run prepare && npx cap sync && cd android && ./gradlew assembleRelease"
+  },
+  "dependencies": {
+    "@capacitor/android": "^6.0.0",
+    "@capacitor/core": "^6.0.0"
+  },
+  "devDependencies": {
+    "@capacitor/cli": "^6.0.0"
+  }
+}

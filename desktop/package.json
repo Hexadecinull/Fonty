@@ -2,15 +2,19 @@
   "name": "fonty",
   "version": "2.1.0",
   "description": "Font manager, inspector and converter with best-in-class FNT/AngelCode bitmap font support",
+  "homepage": "https://github.com/Hexadecinull/Fonty",
   "main": "main.js",
-  "author": "Fonty Contributors",
-  "license": "MIT",
+  "author": {
+    "name": "Fonty Contributors",
+    "email": "noreply@fonty.app"
+  },
+  "license": "GPL-3.0",
   "scripts": {
     "start": "electron .",
-    "build": "electron-builder",
-    "build:win": "electron-builder --win",
+    "build":       "electron-builder",
+    "build:win":   "electron-builder --win",
     "build:linux": "electron-builder --linux",
-    "build:mac": "electron-builder --mac"
+    "build:mac":   "electron-builder --mac"
   },
   "devDependencies": {
     "electron": "^31.0.0",
@@ -20,6 +24,8 @@
     "appId": "io.fonty.app",
     "productName": "Fonty",
     "copyright": "Copyright (c) 2024 Fonty Contributors",
+    "asar": true,
+    "npmRebuild": false,
     "directories": {
       "output": "dist",
       "buildResources": "build"
@@ -43,11 +49,13 @@
       "oneClick": false,
       "allowToChangeInstallationDirectory": true,
       "createDesktopShortcut": true,
-      "createStartMenuShortcut": true
+      "createStartMenuShortcut": true,
+      "compression": "lzma"
     },
     "linux": {
       "target": ["AppImage", "deb"],
       "category": "Utility",
+      "maintainer": "Fonty Contributors <noreply@fonty.app>",
       "artifactName": "${productName}-${version}-${arch}.${ext}"
     },
     "deb": {

@@ -706,7 +706,7 @@ async function convertAndDownload(font, fmt) {
 async function saveSingleBuffer(buffer, filename, mimeType) {
   if (IS_ELECTRON) {
     const ext = filename.split('.').pop();
-    const b64 = btoa(String.fromCharCode(...new Uint8Array(buffer)));
+    const b64 = Fonty.utils.arrayBufferToBase64(buffer);
     const fp  = await window.electronAPI.saveFile({ defaultName: filename, ext, data: b64 });
     if (fp) toast(`Saved to ${fp}`, 'success');
     return fp;
@@ -720,11 +720,11 @@ async function saveFNTResult(result, base) {
   if (IS_ELECTRON) {
     const files = [];
     if (isBin) {
-      const arr = result.fnt instanceof ArrayBuffer ? new Uint8Array(result.fnt) : new Uint8Array(result.fnt);
-      files.push({ name: `${base}.fnt`, data: btoa(String.fromCharCode(...arr)) });
+      const buf = result.fnt instanceof ArrayBuffer ? result.fnt : result.fnt.buffer;
+      files.push({ name: `${base}.fnt`, data: Fonty.utils.arrayBufferToBase64(buf) });
     } else {
       const bytes = new TextEncoder().encode(result.fnt);
-      files.push({ name: `${base}.fnt`, data: btoa(String.fromCharCode(...bytes)) });
+      files.push({ name: `${base}.fnt`, data: Fonty.utils.arrayBufferToBase64(bytes.buffer) });
     }
     result.pngDataURLs.forEach((url, i) => {
       files.push({ name: `${i}.png`, data: url.split(',')[1] });
@@ -1092,3 +1092,24 @@ function formatBytes(bytes) {
   if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 }
+
+// Mobile sidebar toggle
+(function () {
+  const btnMenu  = document.getElementById('btn-menu');
+  const sidebar  = document.getElementById('sidebar');
+  const overlay  = document.getElementById('sidebar-overlay');
+  if (!btnMenu) return;
+
+  function openSidebar()  { sidebar.classList.add('open');    overlay.classList.add('visible'); }
+  function closeSidebar() { sidebar.classList.remove('open'); overlay.classList.remove('visible'); }
+
+  btnMenu.addEventListener('click', () => {
+    sidebar.classList.contains('open') ? closeSidebar() : openSidebar();
+  });
+  overlay.addEventListener('click', closeSidebar);
+
+  // Close sidebar when a font is selected on mobile
+  el.fontList.addEventListener('click', () => {
+    if (window.innerWidth <= 720) closeSidebar();
+  });
+}());
