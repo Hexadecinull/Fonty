@@ -75,6 +75,13 @@ const el = {
   fntCharset:     $('fnt-charset'),
   btnPreviewAtlas: $('btn-preview-atlas'),
   fntStats:       $('fnt-stats'),
+  fntChannel:     $('fnt-channel'),
+  fntSDF:         $('fnt-sdf'),
+  fntSDFSpread:   $('fnt-sdf-spread'),
+  fntSDFField:    $('fnt-sdf-spread-field'),
+  fntGDMode:      $('fnt-gd-mode'),
+  ttcPicker:      $('ttc-picker'),
+  ttcSelect:      $('ttc-select'),
   fileInfoTable:  $('file-info-table'),
   // glyphs
   glyphSearch:    $('glyph-search'),
@@ -177,7 +184,7 @@ function toast(msg, type = 'info', duration = 3500) {
 // ===========================================================================
 
 async function loadFiles(fileList) {
-  const files = [...fileList].filter(f => /\.(ttf|otf|woff|woff2|fnt)$/i.test(f.name));
+  const files = [...fileList].filter(f => /\.(ttf|otf|woff|woff2|fnt|ttc|eot|svg|bdf)$/i.test(f.name));
   if (!files.length) { toast('No supported font files found.', 'error'); return; }
   await loadFileObjects(files);
 }
@@ -284,6 +291,32 @@ function selectFont(id) {
   renderGlyphTab(font);
   renderCSSTab(font);
   updateStatusBar(font);
+  renderTTCPicker(font);
+}
+
+function renderTTCPicker(font) {
+  if (!el.ttcPicker) return;
+  if (!font.isTTC || font.ttcCount < 2) { el.ttcPicker.hidden = true; return; }
+  el.ttcPicker.hidden = false;
+  el.ttcSelect.innerHTML = font.getTTCNames()
+    .map((name, i) => `<option value="${i}">${escHtml(name)}</option>`)
+    .join('');
+  el.ttcSelect.value = '0';
+  el.ttcSelect.onchange = () => {
+    font.selectTTCFont(parseInt(el.ttcSelect.value, 10));
+    // Refresh style element for new subfamily
+    const entry = state.fonts.get(state.activeFontId);
+    if (entry?.styleEl) { entry.styleEl.remove(); }
+    const styleEl = document.createElement('style');
+    styleEl.textContent = font.getCSSFontFace();
+    document.head.appendChild(styleEl);
+    entry.styleEl = styleEl;
+    renderPreview(font);
+    renderMetaTab(font);
+    renderGlyphTab(font);
+    renderCSSTab(font);
+    updateStatusBar(font);
+  };
 }
 
 function removeFont(id) {
@@ -577,6 +610,13 @@ function updateFNTOptionsVisibility() {
 
 el.singleFormat.addEventListener('change', updateFNTOptionsVisibility);
 
+// SDF spread field visibility
+if (el.fntSDF) {
+  el.fntSDF.addEventListener('change', () => {
+    if (el.fntSDFField) el.fntSDFField.hidden = el.fntSDF.value !== '1';
+  });
+}
+
 // Charset preset buttons
 el.charsetPresets.querySelectorAll('.preset-btn').forEach(btn => {
   btn.addEventListener('click', () => {
@@ -596,13 +636,17 @@ function getFNTOptions() {
   const charset = state.activeCharset === 'custom'
     ? el.fntCharset.value
     : (Fonty.CHARSET_PRESETS[state.activeCharset] || Fonty.CHARSET_PRESETS.ASCII);
+  const sdfOn = el.fntSDF?.value === '1';
   return {
-    size:           parseInt(el.fntSize.value, 10)       || 32,
-    padding:        parseInt(el.fntPadding.value, 10)    || 2,
-    spacing:        parseInt(el.fntSpacing.value, 10)    || 1,
-    outputFmt:      el.fntOutputFmt.value                || 'text',
-    atlasWidth:     parseInt(el.fntAtlasSize.value, 10)  || 0,
+    size:           parseInt(el.fntSize.value, 10)      || 32,
+    padding:        parseInt(el.fntPadding.value, 10)   || 2,
+    spacing:        parseInt(el.fntSpacing.value, 10)   || 1,
+    outputFmt:      el.fntOutputFmt.value               || 'text',
+    atlasWidth:     parseInt(el.fntAtlasSize.value, 10) || 0,
     includeKerning: el.fntKerning.value === '1',
+    channel:        parseInt(el.fntChannel?.value ?? '15', 10),
+    sdf:            sdfOn,
+    sdfSpread:      sdfOn ? (parseInt(el.fntSDFSpread?.value, 10) || 4) : 4,
     charset,
   };
 }
@@ -686,12 +730,25 @@ async function convertAndDownload(font, fmt) {
   const label = el.btnConvertSingle;
   label.textContent = 'Exporting...'; label.disabled = true;
   try {
-    const result  = await font.convert(fmt, getFNTOptions());
-    const base    = Fonty.utils.basename(font.filename) || font.getMetadata().family || 'font';
-    if (fmt === 'fnt') {
+    const opts  = getFNTOptions();
+    const base  = Fonty.utils.basename(font.filename) || font.getMetadata().family || 'font';
+    const isGD  = fmt === 'fnt' && el.fntGDMode?.checked;
+
+    if (isGD) {
+      // Geometry Dash: export Normal, -hd, -uhd
+      label.textContent = 'Exporting GD variants...';
+      const variants = await font.toFNT_GD(base, opts);
+      for (const v of variants) {
+        await saveFNTResult({ ...v, pngDataURLs: v.pngDataURLs, fntFormat: opts.outputFmt }, base, v.suffix);
+      }
+      toast(`GD export: ${base}.fnt, ${base}-hd.fnt, ${base}-uhd.fnt`, 'success', 5000);
+      if (variants[0]?.charCount) showFNTStats(variants[0]);
+    } else if (fmt === 'fnt') {
+      const result = await font.convert(fmt, opts);
       await saveFNTResult(result, base);
       if (result.charCount) showFNTStats(result);
     } else {
+      const result = await font.convert(fmt, opts);
       await saveSingleBuffer(result.buffer, `${base}.${result.ext}`, Fonty.MIME_TYPES[result.ext]);
       toast(`Exported ${base}.${result.ext}`, 'success');
     }
@@ -715,13 +772,13 @@ async function saveSingleBuffer(buffer, filename, mimeType) {
   return filename;
 }
 
-async function saveFNTResult(result, base) {
+async function saveFNTResult(result, base, suffix = '') {
   const isBin = result.fntFormat === 'binary';
   if (IS_ELECTRON) {
     const files = [];
     if (isBin) {
       const buf = result.fnt instanceof ArrayBuffer ? result.fnt : result.fnt.buffer;
-      files.push({ name: `${base}.fnt`, data: Fonty.utils.arrayBufferToBase64(buf) });
+      files.push({ name: `${base}${suffix}.fnt`, data: Fonty.utils.arrayBufferToBase64(buf) });
     } else {
       const bytes = new TextEncoder().encode(result.fnt);
       files.push({ name: `${base}.fnt`, data: Fonty.utils.arrayBufferToBase64(bytes.buffer) });
@@ -733,10 +790,10 @@ async function saveFNTResult(result, base) {
     if (dir) toast(`Saved ${files.length} file(s) to ${dir}`, 'success');
   } else {
     if (isBin) {
-      const buf = result.fnt instanceof ArrayBuffer ? result.fnt : result.fnt;
+      const buf = result.fnt instanceof ArrayBuffer ? result.fnt : result.fnt.buffer || result.fnt;
       Fonty.downloadBuffer(buf, `${base}.fnt`, 'application/octet-stream');
     } else {
-      Fonty.downloadBuffer(new TextEncoder().encode(result.fnt).buffer, `${base}.fnt`, 'text/plain');
+      Fonty.downloadBuffer(new TextEncoder().encode(result.fnt).buffer, `${base}${suffix}.fnt`, 'text/plain');
     }
     result.pngDataURLs.forEach((url, i) => {
       const a = Object.assign(document.createElement('a'), { href: url, download: `${i}.png` });

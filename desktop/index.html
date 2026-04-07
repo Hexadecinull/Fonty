@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
   <title>Fonty</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -72,8 +72,15 @@
         <span class="sidebar-title">Fonts <span class="badge" id="font-count">0</span></span>
         <div class="sidebar-actions">
           <label class="btn btn-ghost btn-sm" for="file-input-sidebar" id="sidebar-add-label">+ Add</label>
-          <input type="file" id="file-input-sidebar" multiple accept=".ttf,.otf,.woff,.woff2,.fnt" hidden />
+          <input type="file" id="file-input-sidebar" multiple accept=".ttf,.otf,.woff,.woff2,.fnt,.ttc,.eot,.svg,.bdf" hidden />
         </div>
+      </div>
+      <!-- TTC collection selector (shown only when a TTC font is active) -->
+      <div id="ttc-picker" hidden style="padding:8px 12px;border-bottom:1px solid var(--border);flex-shrink:0">
+        <label class="fnt-label" style="display:flex;flex-direction:column;gap:4px">
+          <span>Font in collection</span>
+          <select class="input input-sm" id="ttc-select"></select>
+        </label>
       </div>
       <ul class="font-list" id="font-list"></ul>
     </aside>
@@ -84,10 +91,10 @@
         <div class="drop-inner">
           <div class="drop-icon">Aa</div>
           <p class="drop-title">Drop font files here</p>
-          <p class="drop-sub">.ttf . .otf . .woff . .woff2 . .fnt</p>
+          <p class="drop-sub">.ttf . .otf . .woff . .woff2 . .fnt . .ttc . .eot . .svg . .bdf</p>
           <div class="drop-actions">
             <label class="btn btn-primary" for="file-input" id="browse-label">Browse files</label>
-            <input type="file" id="file-input" multiple accept=".ttf,.otf,.woff,.woff2,.fnt" hidden />
+            <input type="file" id="file-input" multiple accept=".ttf,.otf,.woff,.woff2,.fnt,.ttc,.eot,.svg,.bdf" hidden />
           </div>
         </div>
       </div>
@@ -194,6 +201,32 @@
                     <option value="0">Skip</option>
                   </select>
                 </div>
+                <div class="fnt-field">
+                  <label class="fnt-label">Channel</label>
+                  <select class="input input-sm" id="fnt-channel">
+                    <option value="15" selected>All (RGBA)</option>
+                    <option value="8">Alpha only</option>
+                  </select>
+                </div>
+                <div class="fnt-field">
+                  <label class="fnt-label">SDF mode</label>
+                  <select class="input input-sm" id="fnt-sdf">
+                    <option value="0" selected>Off</option>
+                    <option value="1">On</option>
+                  </select>
+                </div>
+                <div class="fnt-field" id="fnt-sdf-spread-field" hidden>
+                  <label class="fnt-label">SDF spread (px)</label>
+                  <input type="number" class="input input-sm input-mono" id="fnt-sdf-spread" value="4" min="1" max="32" />
+                </div>
+              </div>
+
+              <!-- Geometry Dash export -->
+              <div class="fnt-field" style="grid-column:1/-1;margin-top:2px">
+                <label class="fnt-label">
+                  <input type="checkbox" id="fnt-gd-mode" style="margin-right:6px;accent-color:var(--accent)" />
+                  Geometry Dash export (generates Normal, -hd, -uhd variants)
+                </label>
               </div>
               <div class="charset-row">
                 <div class="section-header" style="margin-bottom:6px">

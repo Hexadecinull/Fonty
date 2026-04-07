@@ -219,6 +219,7 @@ body.platform-mac .topbar-brand {
   justify-content: space-between;
   height: var(--topbar-h);
   padding: 0 16px 0 0;
+  padding-right: max(16px, env(safe-area-inset-right));
   background: var(--bg1);
   border-bottom: 1px solid var(--border);
   z-index: 100;
@@ -1265,6 +1266,9 @@ textarea.input {
   display: flex;
   align-items: center;
   padding: 0 14px;
+  padding-left:  max(14px, env(safe-area-inset-left));
+  padding-right: max(14px, env(safe-area-inset-right));
+  padding-bottom: env(safe-area-inset-bottom);
   background: var(--bg1);
   border-top: 1px solid var(--border);
   gap: 16px;
@@ -1411,6 +1415,37 @@ textarea.input {
   -webkit-backdrop-filter: blur(2px);
   backdrop-filter: blur(2px);
 }
+
+/* Skeleton loading state */
+.skeleton {
+  background: linear-gradient(90deg, var(--bg3) 25%, var(--bg4) 50%, var(--bg3) 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.4s infinite;
+  border-radius: var(--radius-sm);
+  color: transparent !important;
+}
+.skeleton * { opacity: 0; }
+
+.font-item.loading .font-item-glyph {
+  background: linear-gradient(90deg, var(--bg3) 25%, var(--bg4) 50%, var(--bg3) 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.4s infinite;
+  color: transparent;
+}
+.font-item.loading .font-item-name,
+.font-item.loading .font-item-sub {
+  border-radius: 3px;
+  background: linear-gradient(90deg, var(--bg3) 25%, var(--bg4) 50%, var(--bg3) 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.4s infinite;
+  color: transparent;
+  width: 80%;
+  height: 10px;
+  display: block;
+  margin: 3px 0;
+}
+.font-item.loading .font-item-sub { width: 50%; }
+
 
 /* =========================================================================
    Mobile - full redesign for touch screens
@@ -1605,6 +1640,7 @@ textarea.input {
 
   /* ---- FNT options ---- */
   .fnt-grid { grid-template-columns: 1fr 1fr; gap: 10px; }
+  .fnt-grid > :nth-child(n+7) { grid-column: span 2; }
   .fnt-label { font-size: 11px; }
   .input-sm  { height: 38px; font-size: 13px; }
 
