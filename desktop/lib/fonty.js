@@ -388,7 +388,7 @@
       g.atlasX = placed.x + padding;
       g.atlasY = placed.y + padding;
       g.page   = pages.length;
-      maxY = Math.max(maxY, placed.y + g.slotH + spacing);
+      maxY = Math.max(maxY, placed.y + g.slotH);  // slotH includes padding, no need for extra spacing
       curPage.push(g);
     }
     if (curPage.length) pages.push({ items: curPage, maxY });
@@ -569,7 +569,7 @@
 
   function fontToFNT(otFont, options = {}) {
     const {
-      size = 32, padding = 2, spacing = 1,
+      size = 32, padding = 2, spacing = 2,
       charset = CHARSET_PRESETS.ASCII,
       outputFmt = FNT_OUTPUT.TEXT,
       atlasWidth = 0,
@@ -661,7 +661,7 @@
 
     const kernings  = includeKerning ? _extractKernings(otFont, glyphInfos, scale) : [];
     const face      = otFont.names?.fontFamily?.en || otFont.names?.fontFamily?.[''] || 'Unknown';
-    const pageNames = renderedPages.map((_, i) => `${i}.png`);
+    const pageNames = options.pageNames ?? renderedPages.map((_, i) => `${i}.png`);
     const bCtx      = { face, size, lineHeight: lineH, base, padding, spacing, renderedPages, kernings, pageNames, channel };
 
     let fnt;
@@ -691,12 +691,72 @@
       const suffix  = ['', '-hd', '-uhd'][i];
       const outName = `${baseName}${suffix}`;
       const imgName = `${outName}.png`;
-      const result  = fontToFNT(otFont, { ...options, size: (options.size || 32) * scale });
+      // Pass the correct page name so binary blocks embed the right filename
+      const result   = fontToFNT(otFont, {
+        ...options,
+        size:      (options.size || 32) * scale,
+        pageNames: [imgName],           // override the default "0.png"
+        spacing:   options.spacing ?? 2, // GD safe minimum
+        padding:   options.padding ?? 2,
+      });
+      // For text/xml output also patch the reference (belt + suspenders)
       const fixedFnt = typeof result.fnt === 'string'
-        ? result.fnt.replace(/file="0\.png"/g, `file="${imgName}"`)
+        ? result.fnt.replace(/file="[^"]*\.png"/g, `file="${imgName}"`)
         : result.fnt;
       return { ...result, fnt: fixedFnt, fntName: `${outName}.fnt`, pngName: imgName, scale, suffix };
     });
+  }
+
+
+  // ===========================================================================
+  // EOT Writer - wraps an SFNT buffer in a minimal EOT header
+  // ===========================================================================
+
+  function _wrapEOT(sfntBuffer, meta) {
+    // Minimal EOT v1 header (82 bytes fixed + variable font name fields)
+    const enc       = new TextEncoder();
+    const name16    = (str) => {
+      const buf = new Uint8Array((str.length + 1) * 2);
+      const dv  = new DataView(buf.buffer);
+      for (let i = 0; i < str.length; i++) dv.setUint16(i * 2, str.charCodeAt(i), true);
+      return buf;
+    };
+
+    const familyBuf  = name16(meta.family         || 'Unknown');
+    const styleBuf   = name16(meta.subfamily       || 'Regular');
+    const versionBuf = name16(meta.version         || '1.0');
+    const fullBuf    = name16(meta.fullName         || (meta.family + ' ' + (meta.subfamily || '')));
+
+    // Each string is: 2-byte length LE + UTF-16LE bytes
+    const strSection = [familyBuf, styleBuf, versionBuf, fullBuf].reduce((acc, buf) => {
+      const lenBuf = new Uint8Array(2);
+      new DataView(lenBuf.buffer).setUint16(0, buf.byteLength, true);
+      return _concatBuffers([acc, lenBuf.buffer, buf.buffer]);
+    }, new ArrayBuffer(0));
+
+    const eotSize   = 82 + strSection.byteLength + sfntBuffer.byteLength;
+    const header    = new ArrayBuffer(82);
+    const hv        = new DataView(header);
+    hv.setUint32(0,  eotSize,            true);  // EotSize
+    hv.setUint32(4,  sfntBuffer.byteLength, true); // FontDataSize
+    hv.setUint32(8,  0x00020001,         true);  // Version 2.1
+    hv.setUint32(12, 0,                  true);  // Flags
+    // PanoseArray (10 bytes) at offset 16 - leave as zero
+    hv.setUint8(26, 0x01);                         // Charset (ANSI)
+    hv.setUint8(27, 0x00);                         // Italic
+    hv.setUint32(28, 400,                true);  // Weight (Normal=400)
+    hv.setUint16(32, 0,                  true);  // fsType
+    hv.setUint16(34, 0x504C,             true);  // MagicNumber 'LP'
+    // UnicodeRange, CodePageRange at 36-51 - zero
+    hv.setUint32(52, 0,                  true);  // CheckSumAdjustment
+    hv.setUint32(56, 0,                  true);  // Reserved1-4
+    hv.setUint32(60, 0,                  true);
+    hv.setUint32(64, 0,                  true);
+    hv.setUint32(68, 0,                  true);
+    hv.setUint16(72, 0,                  true);  // Padding1
+    // Root strings follow header, then SFNT data at the end
+
+    return _concatBuffers([header, strSection, sfntBuffer]);
   }
 
   // ===========================================================================
@@ -904,17 +964,44 @@
       return wasm.compress(new Uint8Array(await this.toArrayBuffer())).buffer;
     }
 
-    async toFNT(options = {})                  { if (this.isBitmap) throw new Error('Already bitmap.'); return fontToFNT(this._otFont, options); }
+    async toFNT(options = {}) {
+      if (this._format === FORMAT.BDF) {
+        // Re-export BDF as FNT: re-render using the existing char metrics
+        // (we can't go back to vector, but we can transcode the bitmap data)
+        throw new Error('BDF to FNT re-export: BDF fonts store raw pixel bitmaps. Use "Export FNT" from the Convert tab - the app will rebuild the atlas from the stored glyph data.');
+      }
+      if (this.isBitmap) throw new Error('This bitmap font is already in FNT format.');
+      return fontToFNT(this._otFont, options);
+    }
     async toFNT_GD(baseName, options = {})     { if (this.isBitmap) throw new Error('Already bitmap.'); return fontToFNT_GD(this._otFont, baseName, options); }
 
     async convert(targetFormat, options = {}) {
+      // Vector-in formats: TTF, OTF, WOFF, WOFF2, TTC (any index), EOT, SVG
+      // These all produce an opentype.js font in this._otFont, so any vector-out
+      // target works regardless of the source format.
+      // Bitmap-in formats: FNT, BDF - can only export to FNT/BDF (no upsample).
+      if (this.isBitmap && targetFormat !== FORMAT.FNT) {
+        throw new Error(`Cannot convert a bitmap font (${this._format.toUpperCase()}) to ${targetFormat.toUpperCase()}. Bitmap-to-vector conversion is not mathematically possible without manual vectorization.`);
+      }
       switch (targetFormat) {
         case FORMAT.TTF:   return { buffer: await this.toTTF(),   ext: 'ttf' };
         case FORMAT.OTF:   return { buffer: await this.toOTF(),   ext: 'otf' };
         case FORMAT.WOFF:  return { buffer: await this.toWOFF(),  ext: 'woff' };
         case FORMAT.WOFF2: return { buffer: await this.toWOFF2(), ext: 'woff2' };
         case FORMAT.FNT:   return { ...(await this.toFNT(options)), ext: 'fnt' };
-        default: throw new Error(`Unknown target format: "${targetFormat}"`);
+        case FORMAT.EOT: {
+          // Wrap the current TTF in a minimal EOT container
+          const ttf = await this.toArrayBuffer();
+          return { buffer: _wrapEOT(ttf, this.getMetadata()), ext: 'eot' };
+        }
+        case FORMAT.TTC:
+          throw new Error('Writing TTC collections is not supported. Export individual fonts as TTF instead.');
+        case FORMAT.SVG:
+          throw new Error('SVG font output is not supported. SVG fonts are deprecated; use TTF/WOFF2 instead.');
+        case FORMAT.BDF:
+          throw new Error('BDF is a pixel-map format. Vector-to-BDF conversion requires FontForge or similar rasterization tools.');
+        default:
+          throw new Error(`Unknown target format: "${targetFormat}"`);
       }
     }
 

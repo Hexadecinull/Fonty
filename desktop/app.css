@@ -1447,6 +1447,98 @@ textarea.input {
 .font-item.loading .font-item-sub { width: 50%; }
 
 
+/* Active font name shown in topbar when fonts are loaded */
+.topbar-font-name {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--text2);
+  max-width: 160px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  padding: 3px 8px;
+  background: var(--bg3);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  animation: fadeIn var(--dur-normal) var(--ease-out);
+}
+
+/* Format pill in statusbar */
+.status-fmt-pill {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 600;
+  padding: 2px 7px;
+  border-radius: 3px;
+  letter-spacing: .04em;
+  text-transform: uppercase;
+}
+.status-fmt-pill.fmt-ttf,
+.status-fmt-pill.fmt-otf   { background: #1a2a4a; color: #6ea8fe; }
+.status-fmt-pill.fmt-woff,
+.status-fmt-pill.fmt-woff2 { background: #1a3a2a; color: #4fcb8a; }
+.status-fmt-pill.fmt-fnt   { background: #2a1a4a; color: #b09eff; }
+.status-fmt-pill.fmt-bdf   { background: #2a2a1a; color: #fbbf24; }
+.status-fmt-pill.fmt-ttc   { background: #1a2a4a; color: #93c5fd; }
+.status-fmt-pill.fmt-eot   { background: #3a1a1a; color: #fca5a5; }
+.status-fmt-pill.fmt-svg   { background: #1a3a3a; color: #5eead4; }
+
+/* statusbar sep2 */
+#status-sep2 {
+  width: 1px; height: 12px;
+  background: var(--border2);
+  flex-shrink: 0;
+}
+
+/* Section badge (used for "WebFNT" label) */
+.section-badge {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  font-weight: 600;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+  color: var(--accent);
+  background: var(--accent-dim);
+  border: 1px solid rgba(123,108,246,.25);
+  padding: 2px 6px;
+  border-radius: 3px;
+}
+
+/* WebFNT preview block */
+.webfnt-input-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+.webfnt-input-row .input { flex: 1; }
+
+.webfnt-output {
+  min-height: 40px;
+  padding: 10px 12px;
+  background: var(--bg1);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow-x: auto;
+  animation: fadeIn var(--dur-normal) var(--ease-out);
+}
+.webfnt-note {
+  font-size: 11px;
+  color: var(--text3);
+  font-family: var(--font-mono);
+  margin-top: 8px;
+  line-height: 1.5;
+  display: none;
+}
+
+/* Statusbar version text */
+.statusbar-ver {
+  font-size: 10px;
+  color: var(--text3);
+  font-family: var(--font-mono);
+}
+
+
 /* =========================================================================
    Mobile - full redesign for touch screens
    =========================================================================
@@ -1703,10 +1795,11 @@ textarea.input {
     font-size: 11px;
   }
   .statusbar-item { font-size: 11px; }
-  .statusbar-item span:first-child { display: none; }
+  .statusbar-item span:not(.val) { display: none; } /* hide labels, keep values */
   .statusbar-item .val { font-size: 11px; }
-  /* Keep GitHub link visible on mobile */
+  .status-fmt-pill { font-size: 9px; }
   .statusbar-right { gap: 8px; }
+  .statusbar-ver { display: none; }
 
   /* ---- Variable axes ---- */
   .var-axes-grid { grid-template-columns: 1fr; }
@@ -1726,3 +1819,145 @@ textarea.input {
   .fnt-grid { grid-template-columns: 1fr; }
   .glyph-grid { grid-template-columns: repeat(auto-fill, minmax(48px, 1fr)); }
 }
+
+/* ===========================================================================
+   Desktop animation improvements
+   Ensure all transitions are visible at full scale (not just mobile)
+   =========================================================================== */
+
+/* Font list: stagger items on load */
+.font-item:nth-child(1)  { animation-delay:   0ms; }
+.font-item:nth-child(2)  { animation-delay:  30ms; }
+.font-item:nth-child(3)  { animation-delay:  60ms; }
+.font-item:nth-child(4)  { animation-delay:  90ms; }
+.font-item:nth-child(5)  { animation-delay: 120ms; }
+.font-item:nth-child(6)  { animation-delay: 150ms; }
+.font-item:nth-child(n+7){ animation-delay: 180ms; }
+
+/* Tab content: smooth cross-fade + slight upward motion */
+.tab-content {
+  animation: none; /* reset, applied via .active */
+}
+.tab-content.active {
+  animation: fadeUp var(--dur-normal) var(--ease-out) both;
+}
+
+/* Info pane sections animate in sequence */
+.section-block {
+  animation: fadeUp var(--dur-normal) var(--ease-out) both;
+}
+.section-block:nth-child(2) { animation-delay: 40ms; }
+.section-block:nth-child(3) { animation-delay: 80ms; }
+
+/* Sidebar bottom sheet on mobile: already handled. On desktop, sidebar slides in */
+@media (min-width: 761px) {
+  .sidebar {
+    animation: slideInLeft var(--dur-slow) var(--ease-out) both;
+  }
+  @keyframes slideInLeft {
+    from { transform: translateX(-100%); opacity: 0; }
+    to   { transform: translateX(0);     opacity: 1; }
+  }
+}
+
+/* Preview sample text: transition color, size and font-family smoothly */
+.preview-sample {
+  transition:
+    font-size     var(--dur-fast)   var(--ease-snap),
+    font-family   var(--dur-normal) var(--ease-out),
+    color         var(--dur-fast),
+    letter-spacing var(--dur-fast);
+}
+
+/* Waterfall swatches stagger */
+.waterfall-swatch:nth-child(1) { animation-delay:  0ms; }
+.waterfall-swatch:nth-child(2) { animation-delay: 20ms; }
+.waterfall-swatch:nth-child(3) { animation-delay: 40ms; }
+.waterfall-swatch:nth-child(4) { animation-delay: 60ms; }
+.waterfall-swatch:nth-child(5) { animation-delay: 80ms; }
+.waterfall-swatch:nth-child(6) { animation-delay:100ms; }
+
+/* Glyph grid: fade in when populated */
+.glyph-grid {
+  animation: fadeIn var(--dur-normal) var(--ease-out);
+}
+
+/* Meta grid fields stagger */
+.meta-field {
+  animation: fadeUp var(--dur-normal) var(--ease-out) both;
+}
+.meta-field:nth-child(2) { animation-delay:  20ms; }
+.meta-field:nth-child(3) { animation-delay:  40ms; }
+.meta-field:nth-child(4) { animation-delay:  60ms; }
+.meta-field:nth-child(5) { animation-delay:  80ms; }
+.meta-field:nth-child(n+6) { animation-delay: 100ms; }
+
+/* FNT stats bar animate in */
+.fnt-stats-bar {
+  animation: scaleIn var(--dur-normal) var(--ease-spring) both;
+}
+
+/* WebFNT output text characters */
+.webfnt-output span {
+  animation: fadeIn var(--dur-fast) var(--ease-out) both;
+}
+
+/* Progress bar fill */
+.progress-fill {
+  transition: width var(--dur-normal) var(--ease-snap);
+}
+
+/* Snippet code blocks */
+.snippet-code {
+  transition: border-color var(--dur-fast);
+}
+.snippet-code:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 2px var(--accent-dimmer);
+}
+
+/* Font item active indicator slide in */
+.font-item.active::before {
+  animation: scaleInY var(--dur-fast) var(--ease-spring) both;
+}
+@keyframes scaleInY {
+  from { transform: scaleY(0); }
+  to   { transform: scaleY(1); }
+}
+
+/* Modal enter: pop up from slightly below */
+.modal {
+  animation: modalIn var(--dur-normal) var(--ease-spring) both;
+}
+@keyframes modalIn {
+  from { opacity: 0; transform: translateY(16px) scale(0.96); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+/* Toast enter */
+.toast {
+  animation: toastIn var(--dur-normal) var(--ease-spring) both;
+}
+@keyframes toastIn {
+  from { opacity: 0; transform: translateX(16px) scale(0.95); }
+  to   { opacity: 1; transform: translateX(0) scale(1); }
+}
+
+/* Drop zone drag-over pulse */
+.drop-zone.drag-over .drop-icon {
+  animation: pulse 0.6s ease infinite;
+}
+
+/* Topbar font name slide in */
+.topbar-font-name {
+  animation: slideInRight var(--dur-normal) var(--ease-out) both;
+}
+
+/* Status bar items appear */
+.status-fmt-pill,
+#status-name,
+#status-glyphs,
+#status-size {
+  animation: fadeIn var(--dur-fast) var(--ease-out) both;
+}
+

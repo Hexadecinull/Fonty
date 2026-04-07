@@ -52,15 +52,9 @@
       </div>
       <div class="topbar-actions">
         <button class="btn btn-ghost btn-sm" id="btn-open-native" hidden>Open...</button>
+        <span class="topbar-font-name" id="topbar-font-name" hidden></span>
         <button class="btn btn-ghost btn-sm" id="btn-clear-all">Clear all</button>
         <button class="btn btn-secondary btn-sm" id="btn-export-all">Export all</button>
-        <select class="input input-sm" id="global-format" style="width:auto">
-          <option value="ttf">TTF</option>
-          <option value="otf">OTF</option>
-          <option value="woff" selected>WOFF</option>
-          <option value="woff2">WOFF2</option>
-          <option value="fnt">FNT</option>
-        </select>
       </div>
     </header>
 
@@ -258,6 +252,21 @@
               </div>
               <table class="info-table" id="file-info-table"></table>
             </div>
+
+            <!-- WebFNT live preview: shown only for loaded FNT/BDF fonts -->
+            <div class="section-block" id="webfnt-preview-block" hidden>
+              <div class="section-header">
+                <span class="section-title">Live FNT preview</span>
+                <span class="section-badge">WebFNT</span>
+              </div>
+              <div class="webfnt-input-row">
+                <input class="input" id="webfnt-text" type="text" value="Hello World!" placeholder="Type to preview..." />
+                <input type="range" class="size-slider" id="webfnt-scale" min="1" max="4" step="0.5" value="1" style="width:80px" title="Scale" />
+                <span class="size-label" id="webfnt-scale-label" style="min-width:28px">1x</span>
+              </div>
+              <div class="webfnt-output" id="webfnt-output"></div>
+              <p class="webfnt-note" id="webfnt-note"></p>
+            </div>
           </div>
 
           <div class="tab-content" id="tab-glyphs">
@@ -310,21 +319,29 @@
     </div>
 
     <div class="statusbar" id="statusbar">
-      <div class="statusbar-item" id="status-name"><span>No font loaded</span></div>
-      <div class="statusbar-sep" id="status-sep" hidden></div>
-      <div class="statusbar-item" id="status-format" hidden>
-        <span>Format</span><span class="val" id="status-format-val"></span>
-      </div>
-      <div class="statusbar-item" id="status-glyphs" hidden>
+      <!-- Left: shown when a font is loaded -->
+      <span class="status-fmt-pill" id="status-fmt-pill" hidden></span>
+      <span class="statusbar-item" id="status-name" hidden>
+        <span class="val" id="status-name-val"></span>
+      </span>
+      <span class="statusbar-sep" id="status-sep" hidden></span>
+      <span class="statusbar-item" id="status-glyphs" hidden>
         <span>Glyphs</span><span class="val" id="status-glyphs-val"></span>
-      </div>
-      <div class="statusbar-item" id="status-size" hidden>
+      </span>
+      <span class="statusbar-sep2" id="status-sep2" hidden></span>
+      <span class="statusbar-item" id="status-size" hidden>
         <span>Size</span><span class="val" id="status-size-val"></span>
-      </div>
+      </span>
+      <!-- Right: always visible -->
       <div class="statusbar-right">
-        <a class="statusbar-link" href="https://github.com/Hexadecinull/Fonty" target="_blank" rel="noopener noreferrer">GitHub</a>
+        <a class="statusbar-link" href="https://github.com/Hexadecinull/Fonty" target="_blank" rel="noopener noreferrer" title="View on GitHub">
+          <svg width="12" height="12" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">
+            <path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/>
+          </svg>
+          GitHub
+        </a>
         <span class="statusbar-sep-v"></span>
-        <span class="statusbar-item" style="color:var(--text3);font-size:10px">Fonty v2.1</span>
+        <span class="statusbar-ver">v2.2</span>
       </div>
     </div>
 
@@ -379,6 +396,7 @@
   <script src="https://cdn.jsdelivr.net/npm/opentype.js@1.3.4/dist/opentype.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/pako@2.1.0/dist/pako.min.js"></script>
   <script src="lib/fonty.js"></script>
+  <script src="lib/webfnt.js"></script>
   <script src="app.js"></script>
 </body>
 </html>

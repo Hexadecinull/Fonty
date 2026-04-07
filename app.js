@@ -42,7 +42,6 @@ const el = {
   btnOpenNative:  $('btn-open-native'),
   btnClearAll:    $('btn-clear-all'),
   btnExportAll:   $('btn-export-all'),
-  globalFormat:   $('global-format'),
   // preview
   previewText:    $('preview-text'),
   sizeSlider:     $('size-slider'),
@@ -112,14 +111,23 @@ const el = {
   progressFill:   $('progress-fill'),
   progressLabel:  $('progress-label'),
   // status
+  topbarFontName: $('topbar-font-name'),
+  statusFmtPill:  $('status-fmt-pill'),
   statusName:     $('status-name'),
+  statusNameVal:  $('status-name-val'),
   statusSep:      $('status-sep'),
-  statusFormat:   $('status-format'),
-  statusFormatVal: $('status-format-val'),
+  statusSep2:     $('status-sep2'),
   statusGlyphs:   $('status-glyphs'),
   statusGlyphsVal: $('status-glyphs-val'),
   statusSize:     $('status-size'),
   statusSizeVal:  $('status-size-val'),
+  // WebFNT preview
+  webfntBlock:    $('webfnt-preview-block'),
+  webfntText:     $('webfnt-text'),
+  webfntScale:    $('webfnt-scale'),
+  webfntScaleLabel: $('webfnt-scale-label'),
+  webfntOutput:   $('webfnt-output'),
+  webfntNote:     $('webfnt-note'),
   // toasts
   toastStack:     $('toast-stack'),
 };
@@ -292,6 +300,7 @@ function selectFont(id) {
   renderCSSTab(font);
   updateStatusBar(font);
   renderTTCPicker(font);
+  renderWebFNTPreview(font);
 }
 
 function renderTTCPicker(font) {
@@ -346,6 +355,8 @@ function clearAll() {
   updateFontCount();
   showDropZone();
   clearStatusBar();
+  _webFNTRenderer = null;
+  if (el.webfntBlock) el.webfntBlock.hidden = true;
   toast('All fonts cleared.', 'info');
 }
 
@@ -567,14 +578,15 @@ function renderConvertTab(font) {
   el.fntStats.style.display = 'none';
   el.fntStats.innerHTML = '';
 
-  // For bitmap fonts, lock the export format to FNT - you cannot upscale a bitmap
+  // Determine which output formats are valid for this source
   if (font.isBitmap) {
+    // Bitmap: can only output to FNT (no vector upsample)
     el.singleFormat.value = 'fnt';
-    // Disable all non-FNT options
     Array.from(el.singleFormat.options).forEach(opt => {
       opt.disabled = opt.value !== 'fnt';
     });
   } else {
+    // Vector (TTF/OTF/WOFF/WOFF2/TTC/EOT/SVG): all formats available
     Array.from(el.singleFormat.options).forEach(opt => { opt.disabled = false; });
   }
 
@@ -677,6 +689,10 @@ el.btnPreviewAtlas.addEventListener('click', async () => {
 });
 
 function showFNTStats(result) {
+  // Activate WebFNT live preview after a successful FNT render
+  if (result.fnt && typeof result.fnt === 'string' && result.pngDataURLs?.[0]) {
+    activateWebFNTPreview(result.fnt, result.pngDataURLs[0]);
+  }
   el.fntStats.style.display = 'flex';
   el.fntStats.innerHTML = [
     ['Chars',    result.charCount],
@@ -1032,25 +1048,90 @@ el.batchStart.addEventListener('click', async () => {
 // Status bar
 // ===========================================================================
 
+// ===========================================================================
+// WebFNT Live Preview
+// ===========================================================================
+
+let _webFNTRenderer = null;
+
+function renderWebFNTPreview(font) {
+  if (!el.webfntBlock) return;
+
+  // Only show for loaded bitmap fonts (FNT text/binary/xml)
+  if (!font.isBitmap || font._format === 'bdf') {
+    el.webfntBlock.hidden = true;
+    return;
+  }
+
+  const fntData = font._fntData;
+  if (!fntData || !fntData.pages?.length) { el.webfntBlock.hidden = true; return; }
+
+  el.webfntBlock.hidden = false;
+
+  // The loaded FNT doesn't have its atlas PNG inline - we can't render it
+  // without the actual image file. Show a note explaining this.
+  el.webfntNote.textContent = 'Load the matching PNG atlas alongside this .fnt file to enable live preview. Or convert a vector font to FNT first - the preview activates automatically after conversion.';
+  el.webfntNote.style.display = 'block';
+  _webFNTRenderer = null;
+}
+
+function activateWebFNTPreview(fntText, pngDataURL) {
+  if (!el.webfntBlock || typeof WebFNT === 'undefined') return;
+  el.webfntBlock.hidden = false;
+  el.webfntNote.style.display = 'none';
+
+  const renderer    = WebFNT.createRendererFromData(fntText, pngDataURL);
+  _webFNTRenderer   = renderer;
+
+  function redraw() {
+    const text  = el.webfntText?.value || 'Hello World!';
+    const scale = parseFloat(el.webfntScale?.value || '1');
+    if (el.webfntScaleLabel) el.webfntScaleLabel.textContent = scale + 'x';
+    if (!el.webfntOutput) return;
+    renderer.setScale(scale);
+    renderer.render(text, el.webfntOutput);
+  }
+
+  el.webfntText?.addEventListener('input',  redraw);
+  el.webfntScale?.addEventListener('input', redraw);
+  redraw();
+}
+
 function updateStatusBar(font) {
-  const meta = font.getMetadata();
-  const family = meta.family || Fonty.utils.basename(font.filename);
-  el.statusName.innerHTML = `<span>${escHtml(family)}</span>`;
-  el.statusFormatVal.textContent = font.format.toUpperCase() + (font.isVariable ? ' VAR' : '');
-  el.statusGlyphsVal.textContent = font.isBitmap ? (font._fntData?.chars?.size ?? '?') : font.glyphCount;
-  el.statusSizeVal.textContent   = formatBytes(font._buffer?.byteLength ?? 0);
+  const meta    = font.getMetadata();
+  const family  = meta.family || Fonty.utils.basename(font.filename);
+  const fmt     = font.format.toUpperCase() + (font.isVariable ? ' VAR' : '') + (font.isTTC ? ` TTC(${font.ttcCount})` : '');
+
+  // Topbar: show active font name when fonts are loaded
+  if (el.topbarFontName) {
+    el.topbarFontName.textContent = family;
+    el.topbarFontName.hidden = false;
+  }
+
+  // Statusbar pills
+  if (el.statusFmtPill) {
+    el.statusFmtPill.textContent = fmt;
+    el.statusFmtPill.className   = `status-fmt-pill fmt-${font.format}`;
+    el.statusFmtPill.hidden      = false;
+  }
+  if (el.statusNameVal) el.statusNameVal.textContent = family;
+  el.statusName.hidden    = false;
   el.statusSep.hidden     = false;
-  el.statusFormat.hidden  = false;
+  el.statusGlyphsVal.textContent = font.isBitmap ? (font._fntData?.chars?.size ?? '?') : font.glyphCount;
   el.statusGlyphs.hidden  = false;
+  el.statusSep2.hidden    = false;
+  el.statusSizeVal.textContent   = formatBytes(font._buffer?.byteLength ?? 0);
   el.statusSize.hidden    = false;
 }
 
 function clearStatusBar() {
-  el.statusName.innerHTML = '<span>No font loaded</span>';
-  el.statusSep.hidden    = true;
-  el.statusFormat.hidden = true;
-  el.statusGlyphs.hidden = true;
-  el.statusSize.hidden   = true;
+  if (el.topbarFontName) el.topbarFontName.hidden = true;
+  if (el.statusFmtPill)  el.statusFmtPill.hidden  = true;
+  el.statusName.hidden    = true;
+  el.statusSep.hidden     = true;
+  el.statusSep2.hidden    = true;
+  el.statusGlyphs.hidden  = true;
+  el.statusSize.hidden    = true;
 }
 
 // ===========================================================================
